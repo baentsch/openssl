@@ -98,8 +98,6 @@ workflows:
   build:
     jobs:
       - macOS-shared    
-      - macOS-static    
-      - ubuntu-bionic-x86_64
   nightly:
     triggers:
       - schedule:
@@ -110,5 +108,6 @@ workflows:
                 - OQS-OpenSSL_1_1_1-stable
     jobs:
       - debian-buster-amd64
+      - macOS-static    
       - ubuntu-bionic-x86_64
       - ubuntu-bionic-x86_64-shared

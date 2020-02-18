@@ -119,6 +119,30 @@ def gen_keys(sig_alg):
         os.path.join('..')
     )
 
+def test_environment():
+    helpers.run_subprocess(
+        [
+            'apps/openssl', 'version'
+        ],
+        os.path.join('..')
+    )
+    helpers.run_subprocess(
+        [
+            'env'
+        ]
+    )
+    helpers.run_subprocess(
+        [
+            'pwd'
+        ]
+    )
+    helpers.run_subprocess(
+        [
+            'ls', '-l'
+        ]
+    )
+
+
 def test_connection():
     try:
         st=os.environ['SKIP_TESTS']
