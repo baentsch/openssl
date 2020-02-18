@@ -86,10 +86,12 @@ jobs:
     <<: *macopenssljob
     environment:
       LIBTYPE: shared
+      SKIP_TESTS: connection
   macOS-static:
     <<: *macopenssljob
     environment:
       LIBTYPE: no-shared
+      SKIP_TESTS: connection
 
 workflows:
   version: 2

@@ -28,6 +28,13 @@ kex_algs = kex_algs_master_111
 sig_algs = sig_algs_master_111
 
 def test_gen_keys():
+    try:
+        st=os.environ['SKIP_TESTS']
+    except KeyError:
+        st=""
+    if "gen_keys" in st:
+        return -1
+
     global sig_algs
     for sig_alg in sig_algs:
         yield (gen_keys, sig_alg)
@@ -113,6 +120,13 @@ def gen_keys(sig_alg):
     )
 
 def test_connection():
+    try:
+        st=os.environ['SKIP_TESTS']
+    except KeyError:
+        st=""
+    if "connection" in st:
+        return -1
+
     global sig_algs, kex_algs
     port = 23567
     for sig_alg in sig_algs:
@@ -129,6 +143,13 @@ def run_connection(sig_alg, kex_alg, port):
     )
 
 def test_cms():
+   try:
+        st=os.environ['SKIP_TESTS']
+   except KeyError:
+        st=""
+   if "cms" in st:
+        return -1
+
    global sig_algs
    for sig_alg in sig_algs:
        yield(run_cms, sig_alg)

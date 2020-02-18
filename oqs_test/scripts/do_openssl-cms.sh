@@ -13,6 +13,7 @@ set -x
 if [ "x$OQS_LIBPATH" != "x" ]; then
         export DYLD_LIBRARY_PATH=$OQS_LIBPATH
 fi
+echo "DLD = $DYLD_LIBRARY_PATH"
 
 # Abusing README.md as data to sign/verify
 rm -f result
