@@ -11,6 +11,8 @@
 
 set -x
 
+pwd
+
 # Circumvent OSX SIP LIBPATH 'protection'
 if [ "x$OQS_LIBPATH" != "x" ]; then
 	export DYLD_LIBRARY_PATH=$OQS_LIBPATH
