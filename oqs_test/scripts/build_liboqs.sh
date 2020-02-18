@@ -12,8 +12,10 @@ set -exo pipefail
 OPENSSL_DIR=${OPENSSL_DIR:-"`pwd`/../oqs"}
 
 cd tmp/liboqs
+sed -i -e "s/x86/t86/g" .CMake/add-cpu-extension-flags.cmake
 rm -rf build
 mkdir build && cd build
+
 if [ "x${LIBTYPE}" == "xshared" ]; then
     cmake -GNinja -DCMAKE_INSTALL_PREFIX=${OPENSSL_DIR} -DBUILD_SHARED_LIBS=ON ..
 else
