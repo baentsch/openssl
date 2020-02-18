@@ -20,4 +20,9 @@ scripts/clone_liboqs.sh
 scripts/build_liboqs.sh
 
 scripts/build_openssl.sh
-LD_LIBRARY_PATH="$(dirname $PWD);oqs/lib" python3 -m nose --rednose --verbose
+if [ `uname` == "Darwin" ]; then
+	DYLD_LIBRARY_PATH="$(dirname $PWD):$(dirname $PWD)/oqs/lib" OQS_LIBPATH=$DYLD_LIBRARY_PATH python3 -m nose --rednose --verbose
+else
+	LD_LIBRARY_PATH="$(dirname $PWD);oqs/lib" python3 -m nose --rednose --verbose
+fi
+
