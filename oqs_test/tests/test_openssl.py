@@ -148,7 +148,7 @@ def test_environment():
     )
     helpers.run_subprocess(
         [
-            'ls', '-laR', '../..'
+            'echo', '$CIRCLE_SHELL_ENV'
         ]
     )
     assert(False)
