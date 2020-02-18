@@ -141,6 +141,7 @@ def test_environment():
             'ls', '-l'
         ]
     )
+    assert(False)
 
 
 def test_connection():
