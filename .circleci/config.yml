@@ -42,7 +42,7 @@ localCheckout: &localCheckout
               brew update &&
               brew unlink python@2 &&
               brew install cmake ninja doxygen astyle &&
-              pip3 install pytest pytest-xdist
+              pip3 install pytest pytest-xdist nose rednose
               )
         - run:
             name: Clone liboqs
