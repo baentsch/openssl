@@ -78,46 +78,12 @@ def gen_keys(sig_alg):
             os.path.join('..')
         )
     else:
-        # generate CA key and cert
+        cmd = os.path.join('oqs_test', 'scripts', 'do_genkey.sh');
         helpers.run_subprocess(
-            [
-                'apps/openssl', 'req', '-x509', '-new',
-                '-newkey', sig_alg,
-                '-keyout', '{}_CA.key'.format(sig_alg),
-                '-out', '{}_CA.crt'.format(sig_alg),
-                '-nodes',
-                '-subj', '/CN=oqstest_CA',
-                '-days', '365',
-                '-config', 'apps/openssl.cnf'
-            ],
-            os.path.join('..')
+         [cmd],
+          os.path.join('..'),
+          env={'SIGALG': sig_alg}
         )
-        # generate server CSR
-        helpers.run_subprocess(
-            [
-                'apps/openssl', 'req', '-new',
-                '-newkey', sig_alg,
-                '-keyout', '{}_srv.key'.format(sig_alg),
-                '-out', '{}_srv.csr'.format(sig_alg),
-                '-nodes',
-                '-subj', '/CN=oqstest_server',
-                '-config', 'apps/openssl.cnf'
-            ],
-            os.path.join('..')
-        )
-    # generate server cert
-    helpers.run_subprocess(
-        [
-            'apps/openssl', 'x509', '-req',
-            '-in', '{}_srv.csr'.format(sig_alg),
-            '-out', '{}_srv.crt'.format(sig_alg),
-            '-CA', '{}_CA.crt'.format(sig_alg),
-            '-CAkey', '{}_CA.key'.format(sig_alg),
-            '-CAcreateserial',
-            '-days', '365'
-        ],
-        os.path.join('..')
-    )
 
 def test_environment():
     helpers.run_subprocess(
