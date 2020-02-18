@@ -36,6 +36,15 @@ localCheckout: &localCheckout
     steps:
         - checkout # change this from "checkout" to "*localCheckout" when running CircleCI locally
         - run:
+            name: Install dependencies
+            command: |
+              scripts/git_no_checkin_in_last_day.sh || (
+              brew update &&
+              brew unlink python@2 &&
+              brew install cmake ninja doxygen astyle &&
+              pip3 install pytest pytest-xdist
+              )
+        - run:
             name: Clone liboqs
             command: .circleci/git_no_checkin_in_last_day.sh || (cd oqs_test && scripts/clone_liboqs.sh)
         - run:
