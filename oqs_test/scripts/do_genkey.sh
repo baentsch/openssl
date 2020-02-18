@@ -19,8 +19,8 @@ if [ "x$OQS_LIBPATH" != "x" ]; then
 fi
 echo "DLD = $DYLD_LIBRARY_PATH"
 
-../apps/openssl req -x509 -new -newkey ${SIGALG} -keyout ${SIGALG}_CA.key -out ${SIGALG}_CA.crt -nodes -subj '/CN=oqstest_CA' -days 365 -config ../apps/openssl.cnf
+apps/openssl req -x509 -new -newkey ${SIGALG} -keyout ${SIGALG}_CA.key -out ${SIGALG}_CA.crt -nodes -subj '/CN=oqstest_CA' -days 365 -config apps/openssl.cnf
 
-../apps/openssl req -new -newkey ${SIGALG} -keyout ${SIGALG}_srv.key -out ${SIGALG}_srv.csr -nodes -subj '/CN=oqstest_server' -config ../apps/openssl.cnf
+apps/openssl req -new -newkey ${SIGALG} -keyout ${SIGALG}_srv.key -out ${SIGALG}_srv.csr -nodes -subj '/CN=oqstest_server' -config apps/openssl.cnf
 
-../apps/openssl x509 -req -in ${SIGALG}_srv.csr -out ${SIGALG}_srv.crt -CA ${SIGALG}_CA.crt -CAkey ${SIGALG}_CA.key -CAcreateserial -days 365
+apps/openssl x509 -req -in ${SIGALG}_srv.csr -out ${SIGALG}_srv.crt -CA ${SIGALG}_CA.crt -CAkey ${SIGALG}_CA.key -CAcreateserial -days 365
