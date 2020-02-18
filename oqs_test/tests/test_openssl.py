@@ -141,6 +141,16 @@ def test_environment():
             'ls', '-l'
         ]
     )
+    helpers.run_subprocess(
+        [
+            'echo', '$DYLD_LIBRARY_PATH'
+        ]
+    )
+    helpers.run_subprocess(
+        [
+            'ls', '-laR', '../..'
+        ]
+    )
     assert(False)
 
 

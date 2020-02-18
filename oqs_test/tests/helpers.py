@@ -11,6 +11,9 @@ def run_subprocess(command, working_dir='.', env=None, expected_returncode=0):
         env_ = os.environ.copy()
         env_.update(env)
         env = env_
+        print(str(env))
+    else:
+        print("Env is None")
 
     # Note we need to capture stdout/stderr from the subprocess,
     # then print it, which nose/unittest will then capture and
