@@ -40,50 +40,12 @@ def test_gen_keys():
         yield (gen_keys, sig_alg)
 
 def gen_keys(sig_alg):
-    if sig_alg == 'ecdsa':
-        # generate curve parameters
-        helpers.run_subprocess(
-            [
-                'apps/openssl', 'ecparam',
-                '-out', 'secp384r1.pem',
-                '-name', 'secp384r1'
-            ],
-            os.path.join('..')
-        )
-        # generate CA key and cert
-        helpers.run_subprocess(
-            [
-                'apps/openssl', 'req', '-x509', '-new',
-                '-newkey', 'ec:secp384r1.pem',
-                '-keyout', '{}_CA.key'.format(sig_alg),
-                '-out', '{}_CA.crt'.format(sig_alg),
-                '-nodes',
-                '-subj', '/CN=oqstest_CA',
-                '-days', '365',
-                '-config', 'apps/openssl.cnf'
-            ],
-            os.path.join('..')
-        )
-        # generate server CSR
-        helpers.run_subprocess(
-            [
-                'apps/openssl', 'req', '-new',
-                '-newkey', 'ec:secp384r1.pem',
-                '-keyout', '{}_srv.key'.format(sig_alg),
-                '-out', '{}_srv.csr'.format(sig_alg),
-                '-nodes',
-                '-subj', '/CN=oqstest_server',
-                '-config', 'apps/openssl.cnf'
-            ],
-            os.path.join('..')
-        )
-    else:
-        cmd = os.path.join('oqs_test', 'scripts', 'do_genkey.sh');
-        helpers.run_subprocess(
+    cmd = os.path.join('oqs_test', 'scripts', 'do_genkey.sh');
+    helpers.run_subprocess(
          [cmd],
           os.path.join('..'),
           env={'SIGALG': sig_alg}
-        )
+    )
 
 def test_environment():
     helpers.run_subprocess(
