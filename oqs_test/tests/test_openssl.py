@@ -47,7 +47,7 @@ def gen_keys(sig_alg):
           env={'SIGALG': sig_alg}
     )
 
-def test_environment():
+def est_environment():
     helpers.run_subprocess(
         [
             'apps/openssl', 'version'
