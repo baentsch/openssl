@@ -440,13 +440,13 @@ const TLS_GROUP_INFO *tls1_group_id_lookup(SSL_CTX *ctx, uint16_t group_id)
     return NULL;
 }
 
-#if !defined(OPENSSL_NO_DH) || !defined(OPENSSL_NO_EC)
 int tls1_group_id2nid(uint16_t group_id, int include_unknown)
 {
-    size_t i;
-
     if (group_id == 0)
         return NID_undef;
+
+#if !defined(OPENSSL_NO_DH) || !defined(OPENSSL_NO_EC)
+    size_t i;
 
     /*
      * Return well known Group NIDs - for backwards compatibility. This won't
@@ -457,11 +457,13 @@ int tls1_group_id2nid(uint16_t group_id, int include_unknown)
         if (nid_to_group[i].group_id == group_id)
             return nid_to_group[i].nid;
     }
+#endif
     if (!include_unknown)
         return NID_undef;
     return TLSEXT_nid_unknown | (int)group_id;
 }
 
+#if !defined(OPENSSL_NO_DH) || !defined(OPENSSL_NO_EC)
 static uint16_t tls1_nid2group_id(int nid)
 {
     size_t i;
