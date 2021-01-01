@@ -129,7 +129,7 @@ static int test_dtls_unprocessed(int testidx)
  * ECDHE or DHE. When it is present it gets fragmented into 3 records in this
  * test.
  */
-# define SRV_TO_CLI_EPOCH_0_RECS 9
+# define SRV_TO_CLI_EPOCH_0_RECS 8
 #endif
 #define SRV_TO_CLI_EPOCH_1_RECS 1
 #define TOTAL_FULL_HAND_RECORDS \
