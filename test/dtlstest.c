@@ -121,7 +121,10 @@ static int test_dtls_unprocessed(int testidx)
 
 #define CLI_TO_SRV_EPOCH_0_RECS 3
 #define CLI_TO_SRV_EPOCH_1_RECS 1
-#if !defined(OPENSSL_NO_EC) || !defined(OPENSSL_NO_DH)
+#if defined(OPENSSL_NO_EC) && defined(OPENSSL_NO_DH)
+/* If neither EC nor DH are available, the message len gets even shorter */
+# define SRV_TO_CLI_EPOCH_0_RECS 8
+#elif !defined(OPENSSL_NO_EC) && !defined(OPENSSL_NO_DH)
 # define SRV_TO_CLI_EPOCH_0_RECS 10
 #else
 /*
@@ -129,7 +132,7 @@ static int test_dtls_unprocessed(int testidx)
  * ECDHE or DHE. When it is present it gets fragmented into 3 records in this
  * test.
  */
-# define SRV_TO_CLI_EPOCH_0_RECS 8
+# define SRV_TO_CLI_EPOCH_0_RECS 9
 #endif
 #define SRV_TO_CLI_EPOCH_1_RECS 1
 #define TOTAL_FULL_HAND_RECORDS \
