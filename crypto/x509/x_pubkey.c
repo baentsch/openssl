@@ -24,6 +24,7 @@
 #include <openssl/dsa.h>
 #include <openssl/encoder.h>
 #include "internal/provider.h"
+#include <openssl/decoder.h>
 
 struct X509_pubkey_st {
     X509_ALGOR *algor;
@@ -181,34 +182,55 @@ int X509_PUBKEY_set(X509_PUBKEY **x, EVP_PKEY *pkey)
 static int x509_pubkey_decode(EVP_PKEY **ppkey, const X509_PUBKEY *key)
 {
     EVP_PKEY *pkey = EVP_PKEY_new();
+    char algname[100];
+    BIO *membio = BIO_new(BIO_s_mem());
 
-    if (pkey == NULL) {
+    if (pkey == NULL || membio == NULL) {
         ERR_raise(ERR_LIB_X509, ERR_R_MALLOC_FAILURE);
         return -1;
     }
 
-    if (!EVP_PKEY_set_type(pkey, OBJ_obj2nid(key->algor->algorithm))) {
-        ERR_raise(ERR_LIB_X509, X509_R_UNSUPPORTED_ALGORITHM);
-        goto error;
-    }
-
-    if (pkey->ameth->pub_decode) {
-        /*
-         * Treat any failure of pub_decode as a decode error. In
-         * future we could have different return codes for decode
-         * errors and fatal errors such as malloc failure.
-         */
-        if (!pkey->ameth->pub_decode(pkey, key))
+    if (key->libctx) { // this comes from a legacy provider, so use old lookup
+        if (!EVP_PKEY_set_type(pkey, OBJ_obj2nid(key->algor->algorithm))) {
+            ERR_raise(ERR_LIB_X509, X509_R_UNSUPPORTED_ALGORITHM);
             goto error;
-    } else {
-        ERR_raise(ERR_LIB_X509, X509_R_METHOD_NOT_SUPPORTED);
-        goto error;
+        }
+        if (pkey->ameth->pub_decode) {
+            /*
+             * Treat any failure of pub_decode as a decode error. In
+             * future we could have different return codes for decode
+             * errors and fatal errors such as malloc failure.
+             */
+            if (!pkey->ameth->pub_decode(pkey, key))
+                goto error;
+        } else {
+            ERR_raise(ERR_LIB_X509, X509_R_METHOD_NOT_SUPPORTED);
+            goto error;
+        }
+    }
+    else { // crypto side lookup, use decoder(s)
+        if (OBJ_obj2txt(algname, 100, key->algor->algorithm, 1) > 0) {
+            OSSL_DECODER_CTX* dec_ctx = NULL;
+            dec_ctx = OSSL_DECODER_CTX_new_by_EVP_PKEY(&pkey, "DER", 
+                                                       "SubjectPublicKeyInfo",
+                                                       algname, 0, NULL, NULL);
+            if ((!dec_ctx) ||
+                (OSSL_DECODER_CTX_get_num_decoders(dec_ctx)==0) ||
+                !i2d_X509_PUBKEY_bio(membio, key) ||  
+                !OSSL_DECODER_from_bio(dec_ctx, membio)) 
+                goto error;
+        } else {
+            ERR_raise(ERR_LIB_X509, X509_R_METHOD_NOT_SUPPORTED);
+            goto error;
+        }
     }
 
     *ppkey = pkey;
+    BIO_free(membio); 
     return 1;
 
  error:
+    BIO_free(membio);
     EVP_PKEY_free(pkey);
     return 0;
 }
