@@ -9048,6 +9048,20 @@ static int test_sigalgs_available(int idx)
         */
 
 #ifndef OPENSSL_NO_TLS1_3
+static void test_evp_sigs(EVP_SIGNATURE *signature, void *arg)
+{
+    SSL_CTX *cctx = NULL, *sctx = NULL;
+    SSL *clientssl = NULL, *serverssl = NULL;
+    if (!TEST_true(create_ssl_ctx_pair(libctx, TLS_server_method(),
+                                       TLS_client_method(),
+                                       TLS1_3_VERSION,
+                                       TLS1_3_VERSION,
+                                       &sctx, &cctx, cert, privkey))
+            || !TEST_true(create_ssl_objects(sctx, cctx, &serverssl, &clientssl,
+                                             NULL, NULL)))
+		printf("Failure to create SSL objects and CTXs\n");
+}
+
 /* This test can run in TLSv1.3 even if ec and dh are disabled */
 static int test_pluggable_group(int idx)
 {
@@ -9062,6 +9076,7 @@ static int test_pluggable_group(int idx)
     if (!TEST_ptr(tlsprov))
         goto end;
 
+    EVP_SIGNATURE_do_all_provided(libctx, test_evp_sigs, NULL);
     if (legacyprov == NULL) {
         /*
          * In this case we assume we've been built with "no-legacy" and skip
