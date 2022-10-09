@@ -605,6 +605,8 @@ of the various TLS versions. For example TLSv1.3 is 0x0304 (772 decimal), and
 TLSv1.2 is 0x0303 (771 decimal). A 0 indicates that there is no defined minimum
 or maximum. A -1 indicates that the group should not be used in that protocol.
 
+=back
+
 =head3 "TLS-SIGALG" Capability
 
 The "TLS-SIGALG" capability can be queried by libssl to discover the list of
