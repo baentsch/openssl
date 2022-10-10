@@ -2437,10 +2437,8 @@ MSG_PROCESS_RETURN tls_process_certificate_request(SSL_CONNECTION *s,
     /* Allocate and clear certificate validity flags */
     OPENSSL_free(s->s3.tmp.valid_flags);
     s->s3.tmp.valid_flags = OPENSSL_zalloc(s->ssl_pkey_num * sizeof(uint32_t));
-    if (s->s3.tmp.valid_flags == NULL) {
-        SSLfatal(s, SSL_AD_INTERNAL_ERROR, ERR_R_MALLOC_FAILURE);
+    if (s->s3.tmp.valid_flags == NULL)
         return 0;
-    }
 
     if (SSL_CONNECTION_IS_TLS13(s)) {
         PACKET reqctx, extensions;

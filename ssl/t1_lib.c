@@ -441,10 +441,8 @@ static int add_provider_sigalgs(const OSSL_PARAM params[], void *data)
                                   (ctx->sigalg_list_max_len
                                    + TLS_SIGALG_LIST_MALLOC_BLOCK_SIZE)
                                   * sizeof(TLS_SIGALG_INFO));
-        if (tmp == NULL) {
-            ERR_raise(ERR_LIB_SSL, ERR_R_MALLOC_FAILURE);
+        if (tmp == NULL)
             return 0;
-        }
         ctx->sigalg_list = tmp;
         memset(tmp + ctx->sigalg_list_max_len, 0,
                sizeof(TLS_SIGALG_INFO) * TLS_SIGALG_LIST_MALLOC_BLOCK_SIZE);
@@ -459,10 +457,8 @@ static int add_provider_sigalgs(const OSSL_PARAM params[], void *data)
         goto err;
     }
     sinf->tlsname = OPENSSL_strdup(p->data);
-    if (sinf->tlsname == NULL) {
-        ERR_raise(ERR_LIB_SSL, ERR_R_MALLOC_FAILURE);
+    if (sinf->tlsname == NULL)
         goto err;
-    }
 
     p = OSSL_PARAM_locate_const(params,
 		                OSSL_CAPABILITY_TLS_SIGALG_NAME_INTERNAL);
@@ -471,10 +467,8 @@ static int add_provider_sigalgs(const OSSL_PARAM params[], void *data)
         goto err;
     }
     sinf->realname = OPENSSL_strdup(p->data);
-    if (sinf->realname == NULL) {
-        ERR_raise(ERR_LIB_SSL, ERR_R_MALLOC_FAILURE);
+    if (sinf->realname == NULL)
         goto err;
-    }
 
     p = OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_SIGALG_ALG);
     if (p == NULL || p->data_type != OSSL_PARAM_UTF8_STRING) {
@@ -482,10 +476,8 @@ static int add_provider_sigalgs(const OSSL_PARAM params[], void *data)
         goto err;
     }
     sinf->algorithm = OPENSSL_strdup(p->data);
-    if (sinf->algorithm == NULL) {
-        ERR_raise(ERR_LIB_SSL, ERR_R_MALLOC_FAILURE);
+    if (sinf->algorithm == NULL)
         goto err;
-    }
 
     /* Truly optional */
     p = OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_SIGALG_HASHALG);
@@ -494,10 +486,8 @@ static int add_provider_sigalgs(const OSSL_PARAM params[], void *data)
     }
     else {
         sinf->hash_algorithm = OPENSSL_strdup(p->data);
-        if (sinf->hash_algorithm == NULL) {
-            ERR_raise(ERR_LIB_SSL, ERR_R_MALLOC_FAILURE);
+        if (sinf->hash_algorithm == NULL)
             goto err;
-        }
     }
 
     p = OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_SIGALG_OID);
@@ -506,10 +496,8 @@ static int add_provider_sigalgs(const OSSL_PARAM params[], void *data)
         goto err;
     }
     sinf->oid = OPENSSL_strdup(p->data);
-    if (sinf->oid == NULL) {
-        ERR_raise(ERR_LIB_SSL, ERR_R_MALLOC_FAILURE);
+    if (sinf->oid == NULL)
         goto err;
-    }
 
     p = OSSL_PARAM_locate_const(params,
 		                OSSL_CAPABILITY_TLS_SIGALG_CODE_POINT);
@@ -616,10 +604,8 @@ int ssl_load_sigalgs(SSL_CTX *ctx)
     /* now populate ctx->ssl_cert_info */
     if (ctx->sigalg_list_len > 0) {
         ctx->ssl_cert_info = OPENSSL_zalloc(sizeof(lu) * ctx->sigalg_list_len);
-        if (ctx->ssl_cert_info == NULL) {
-            ERR_raise(ERR_LIB_SSL, ERR_R_MALLOC_FAILURE);
+        if (ctx->ssl_cert_info == NULL)
             return 0;
-        }
         for(i = 0; i < ctx->sigalg_list_len; i++) {
             ctx->ssl_cert_info[i].nid = OBJ_sn2nid(ctx->sigalg_list[i].algorithm);
             ctx->ssl_cert_info[i].amask = SSL_aANY;
@@ -1975,10 +1961,8 @@ int tls1_set_server_sigalgs(SSL_CONNECTION *s)
     /* Allocate and clear certificate validity flags */
     OPENSSL_free(s->s3.tmp.valid_flags);
     s->s3.tmp.valid_flags = OPENSSL_zalloc(s->ssl_pkey_num * sizeof(uint32_t));
-    if (s->s3.tmp.valid_flags == NULL) {
-        SSLfatal(s, SSL_AD_INTERNAL_ERROR, ERR_R_MALLOC_FAILURE);
+    if (s->s3.tmp.valid_flags == NULL)
         return 0;
-    }
     /*
      * If peer sent no signature algorithms check to see if we support
      * the default algorithm for each certificate type

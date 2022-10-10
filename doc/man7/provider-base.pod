@@ -611,13 +611,12 @@ or maximum. A -1 indicates that the group should not be used in that protocol.
 
 The "TLS-SIGALG" capability can be queried by libssl to discover the list of
 TLS signature algorithms that a provider can support. Each signature supported
-can be used for client- or server-authentication in addition to the build-in
+can be used for client- or server-authentication in addition to the built-in
 signature algorithms.
 TLS1.3 clients can advertise the list of TLS signature algorithms they support
 in the signature_algorithms extension, and TLS servers can select an algorithm
 from the offered list that they also support. In this way a provider can add
-to the list of signature algorithms that libssl already supports with
-additional ones.
+to the list of signature algorithms that libssl already supports.
 
 Each TLS signature algorithm that a provider supports should be described via
 the callback passed in through the provider_get_capabilities function. Each
@@ -637,7 +636,7 @@ the same as the "tls-sigalg-name", but does not have to be.
 
 =item "tls-sigalg-code-point" (B<OSSL_CAPABILITY_TLS_SIGALG_CODE_POINT>) <unsigned integer>
 
-The TLS algorithm id value as given in the IANA TLS SignatureScheme registry.
+The TLS algorithm ID value as given in the IANA TLS SignatureScheme registry.
 
 =item "tls-sigalg-alg" (B<OSSL_CAPABILITY_TLS_SIGALG_ALG>) <UTF8 string>
 
