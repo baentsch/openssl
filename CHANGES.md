@@ -29,6 +29,10 @@ OpenSSL 3.2
 
    *Michael Baentsch*
 
+ * Added support for pluggable (provider-based) TLS signature algorithms
+
+   *Michael Baentsch*
+
  * Added support for Hybrid Public Key Encryption (HPKE) as defined
    in RFC9180. HPKE is required for TLS Encrypted ClientHello (ECH),
    Message Layer Security (MLS) and other IETF specifications.
