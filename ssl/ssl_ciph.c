@@ -2156,7 +2156,7 @@ int SSL_CIPHER_get_auth_nid(const SSL_CIPHER *c)
 int ssl_get_md_idx(int md_nid) {
     int i;
 
-    for(i=0; i<SSL_MD_NUM_IDX; i++) {
+    for(i = 0; i < SSL_MD_NUM_IDX; i++) {
         if (md_nid == ssl_cipher_table_mac[i].nid)
             return i;
     }
@@ -2233,7 +2233,7 @@ int ssl_cert_is_disabled(SSL_CTX *ctx, size_t idx)
 {
     SSL_CERT_LOOKUP *cl;
 
-    /* A new provider-loaded key type is always enabled */
+    /* A provider-loaded key type is always enabled */
     if (idx >= SSL_PKEY_NUM)
         return 0;
 

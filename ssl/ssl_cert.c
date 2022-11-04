@@ -1177,7 +1177,7 @@ int ssl_cert_lookup_by_nid(int nid, size_t *pidx, SSL_CTX *ctx)
     }
     for (i = 0; i < ctx->sigalg_list_len; i++) {
         if (ctx->ssl_cert_info[i].nid == nid) {
-            *pidx = SSL_PKEY_NUM+i;
+            *pidx = SSL_PKEY_NUM + i;
             return 1;
         }
     }
@@ -1219,6 +1219,6 @@ SSL_CERT_LOOKUP *ssl_cert_lookup_by_idx(size_t idx, SSL_CTX *ctx)
     if (idx >= (OSSL_NELEM(ssl_cert_info) + ctx->sigalg_list_len))
         return NULL;
     else if (idx >= (OSSL_NELEM(ssl_cert_info)))
-        return &(ctx->ssl_cert_info[idx-SSL_PKEY_NUM]);
+        return &(ctx->ssl_cert_info[idx - SSL_PKEY_NUM]);
     return &ssl_cert_info[idx];
 }

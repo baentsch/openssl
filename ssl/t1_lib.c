@@ -479,25 +479,29 @@ static int add_provider_sigalgs(const OSSL_PARAM params[], void *data)
     if (sinf->algorithm == NULL)
         goto err;
 
-    /* Truly optional */
+    /* Optional */
     p = OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_SIGALG_HASHALG);
-    if (p == NULL || p->data_type != OSSL_PARAM_UTF8_STRING) {
+    if (p == NULL)
         sinf->hash_algorithm = NULL;
-    }
+    else if (p->data_type != OSSL_PARAM_UTF8_STRING)
+        goto err;
     else {
         sinf->hash_algorithm = OPENSSL_strdup(p->data);
         if (sinf->hash_algorithm == NULL)
             goto err;
     }
 
+    /* Optional */
     p = OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_SIGALG_OID);
-    if (p == NULL || p->data_type != OSSL_PARAM_UTF8_STRING) {
-        ERR_raise(ERR_LIB_SSL, ERR_R_PASSED_INVALID_ARGUMENT);
+    if (p == NULL)
+        sinf->oid = NULL;
+    else if (p->data_type != OSSL_PARAM_UTF8_STRING)
         goto err;
+    else {
+        sinf->oid = OPENSSL_strdup(p->data);
+	if (sinf->oid == NULL)
+            goto err;
     }
-    sinf->oid = OPENSSL_strdup(p->data);
-    if (sinf->oid == NULL)
-        goto err;
 
     p = OSSL_PARAM_locate_const(params,
 		                OSSL_CAPABILITY_TLS_SIGALG_CODE_POINT);
@@ -517,7 +521,7 @@ static int add_provider_sigalgs(const OSSL_PARAM params[], void *data)
 
     p = OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_SIGALG_MIN_TLS);
     if (p == NULL || !OSSL_PARAM_get_int(p, &sinf->mintls) ||
-		    sinf->mintls < TLS1_3_VERSION) {
+		    sinf->mintls != TLS1_3_VERSION) {
         ERR_raise(ERR_LIB_SSL, ERR_R_PASSED_INVALID_ARGUMENT);
         goto err;
     }
@@ -587,7 +591,8 @@ static int discover_provider_sigalgs(OSSL_PROVIDER *provider, void *vctx)
     pgd.provider = provider;
     OSSL_PROVIDER_get_capabilities(provider, "TLS-SIGALG",
                                    add_provider_sigalgs, &pgd);
-    /* Always OK, even if provider doesn't support the capability: 
+    /*
+     * Always OK, even if provider doesn't support the capability:
      * Reconsider testing retval when legacy sigalgs are also loaded this way.
      */
     return 1;
@@ -1413,7 +1418,7 @@ int ssl_setup_sig_algs(SSL_CTX *ctx)
 
     /* Now complete cache and tls12_sigalgs list with provider sig information */
     cache_idx = OSSL_NELEM(sigalg_lookup_tbl);
-    for (i=0; i<ctx->sigalg_list_len; i++) {
+    for (i = 0; i < ctx->sigalg_list_len; i++) {
 	TLS_SIGALG_INFO si = ctx->sigalg_list[i];
 	cache[cache_idx].name = si.algorithm;
 	cache[cache_idx].sigalg = si.code_point;
@@ -1421,7 +1426,7 @@ int ssl_setup_sig_algs(SSL_CTX *ctx)
 	cache[cache_idx].hash = OBJ_sn2nid(si.hash_algorithm);
 	cache[cache_idx].hash_idx = ssl_get_md_idx(cache[cache_idx].hash);
 	cache[cache_idx].sig = OBJ_sn2nid(si.algorithm);
-	cache[cache_idx].sig_idx = i+SSL_PKEY_NUM;
+	cache[cache_idx].sig_idx = i + SSL_PKEY_NUM;
 	cache[cache_idx].sigandhash = cache[cache_idx].sig;
 	cache[cache_idx].curve = NID_undef;
         /* all provided sigalgs are enabled by load */
@@ -1742,7 +1747,8 @@ int tls12_check_peer_sigalg(SSL_CONNECTION *s, uint16_t sig, EVP_PKEY *pkey)
     }
     lu = tls1_lookup_sigalg(s, sig);
     /* if this sigalg is loaded, set so far unknown pkeyid to its sig NID */
-    if ((pkeyid == -1) && (lu != NULL)) pkeyid = lu->sig;
+    if ((pkeyid == -1) && (lu != NULL))
+        pkeyid = lu->sig;
 
     /* Should never happen */
     if (pkeyid == -1)
@@ -1762,8 +1768,8 @@ int tls12_check_peer_sigalg(SSL_CONNECTION *s, uint16_t sig, EVP_PKEY *pkey)
     }
     /* Check the sigalg is consistent with the key OID */
     if (!ssl_cert_lookup_by_nid(
-                 (pkeyid==EVP_PKEY_RSA_PSS)?EVP_PKEY_get_id(pkey):pkeyid, &cidx,
-		 SSL_CONNECTION_GET_CTX(s))
+                 (pkeyid == EVP_PKEY_RSA_PSS) ? EVP_PKEY_get_id(pkey) : pkeyid,
+                 &cidx, SSL_CONNECTION_GET_CTX(s))
             || lu->sig_idx != (int)cidx) {
         SSLfatal(s, SSL_AD_ILLEGAL_PARAMETER, SSL_R_WRONG_SIGNATURE_TYPE);
         return 0;
@@ -1958,9 +1964,11 @@ int tls1_set_server_sigalgs(SSL_CONNECTION *s)
     s->shared_sigalgs = NULL;
     s->shared_sigalgslen = 0;
 
-    /* Allocate and clear certificate validity flags */
-    OPENSSL_free(s->s3.tmp.valid_flags);
-    s->s3.tmp.valid_flags = OPENSSL_zalloc(s->ssl_pkey_num * sizeof(uint32_t));
+    /* Clear certificate validity flags */
+    if (s->s3.tmp.valid_flags)
+        memset(s->s3.tmp.valid_flags, 0, s->ssl_pkey_num * sizeof(uint32_t));
+    else
+        s->s3.tmp.valid_flags = OPENSSL_zalloc(s->ssl_pkey_num * sizeof(uint32_t));
     if (s->s3.tmp.valid_flags == NULL)
         return 0;
     /*
