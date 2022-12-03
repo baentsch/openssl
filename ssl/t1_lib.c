@@ -481,10 +481,12 @@ static int add_provider_sigalgs(const OSSL_PARAM params[], void *data)
 
     /* Optional */
     p = OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_SIGALG_HASHALG);
-    if (p == NULL)
+    if (p == NULL) {
         sinf->hash_algorithm = NULL;
-    else if (p->data_type != OSSL_PARAM_UTF8_STRING)
+    }
+    else if (p->data_type != OSSL_PARAM_UTF8_STRING) {
         goto err;
+    }
     else {
         sinf->hash_algorithm = OPENSSL_strdup(p->data);
         if (sinf->hash_algorithm == NULL)
@@ -493,10 +495,12 @@ static int add_provider_sigalgs(const OSSL_PARAM params[], void *data)
 
     /* Optional */
     p = OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_SIGALG_OID);
-    if (p == NULL)
+    if (p == NULL) {
         sinf->oid = NULL;
-    else if (p->data_type != OSSL_PARAM_UTF8_STRING)
+    }
+    else if (p->data_type != OSSL_PARAM_UTF8_STRING) {
         goto err;
+    }
     else {
         sinf->oid = OPENSSL_strdup(p->data);
 	if (sinf->oid == NULL)
@@ -528,6 +532,11 @@ static int add_provider_sigalgs(const OSSL_PARAM params[], void *data)
 
     p = OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_SIGALG_MAX_TLS);
     if (p == NULL || !OSSL_PARAM_get_int(p, &sinf->maxtls)) {
+        ERR_raise(ERR_LIB_SSL, ERR_R_PASSED_INVALID_ARGUMENT);
+        goto err;
+    }
+    if ((sinf->maxtls != 0) && (sinf->maxtls != -1) &&
+        (sinf->maxtls < sinf->mintls)) {
         ERR_raise(ERR_LIB_SSL, ERR_R_PASSED_INVALID_ARGUMENT);
         goto err;
     }

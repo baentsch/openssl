@@ -652,8 +652,9 @@ This value is mandatory to be supplied.
 =item "tls-sigalg-oid" (B<OSSL_CAPABILITY_TLS_SIGALG_OID>) <UTF8 string>
 
 The OID of the signature algorithm.
-This value is optional to be supplied. The OID must be registered
-via core_obj_create().
+This value is optional to be supplied. If supplied, the OID is automatically
+registered for use. If not supplied, the provider must register the OID itself,
+e.g., via core_obj_create().
 
 =item "tls-sigalg-hashalg" (B<OSSL_CAPABILITY_TLS_SIGALG_HASHALG>) <UTF8 string>
 

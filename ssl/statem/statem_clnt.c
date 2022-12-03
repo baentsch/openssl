@@ -2435,7 +2435,7 @@ MSG_PROCESS_RETURN tls_process_certificate_request(SSL_CONNECTION *s,
                                                    PACKET *pkt)
 {
     /* Clear certificate validity flags */
-    if (s->s3.tmp.valid_flags)
+    if (s->s3.tmp.valid_flags != NULL)
         memset(s->s3.tmp.valid_flags, 0, s->ssl_pkey_num * sizeof(uint32_t));
     else
         s->s3.tmp.valid_flags = OPENSSL_zalloc(s->ssl_pkey_num * sizeof(uint32_t));

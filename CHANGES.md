@@ -25,7 +25,7 @@ OpenSSL 3.2
 
 ### Changes between 3.1 and 3.2 [xx XXX xxxx]
 
- * Added support for provider-based TLS signature algorithms
+ * Added support for pluggable (provider-based) TLS signature algorithms
 
    *Michael Baentsch*
 
