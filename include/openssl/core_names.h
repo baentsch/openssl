@@ -540,6 +540,7 @@ extern "C" {
 
 /* TLS-SIGALG Capability */
 #define OSSL_CAPABILITY_TLS_SIGALG_NAME              "tls-sigalg-name"
+#define OSSL_CAPABILITY_TLS_SIGALG_LONGNAME          "tls-sigalg-longname"
 #define OSSL_CAPABILITY_TLS_SIGALG_NAME_INTERNAL     "tls-sigalg-name-internal"
 #define OSSL_CAPABILITY_TLS_SIGALG_ALG               "tls-sigalg-alg"
 #define OSSL_CAPABILITY_TLS_SIGALG_HASHALG           "tls-sigalg-hashalg"

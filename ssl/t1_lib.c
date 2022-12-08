@@ -460,6 +460,18 @@ static int add_provider_sigalgs(const OSSL_PARAM params[], void *data)
     if (sinf->tlsname == NULL)
         goto err;
 
+    /* Optional */
+    p = OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_SIGALG_LONGNAME);
+    if (p == NULL)
+        sinf->tlsname_long = NULL;
+    else if (p->data_type != OSSL_PARAM_UTF8_STRING)
+        goto err;
+    else {
+        sinf->tlsname_long = OPENSSL_strdup(p->data);
+        if (sinf->tlsname_long == NULL)
+            goto err;
+    }
+
     p = OSSL_PARAM_locate_const(params,
 		                OSSL_CAPABILITY_TLS_SIGALG_NAME_INTERNAL);
     if (p == NULL || p->data_type != OSSL_PARAM_UTF8_STRING) {
@@ -509,8 +521,9 @@ static int add_provider_sigalgs(const OSSL_PARAM params[], void *data)
 
     p = OSSL_PARAM_locate_const(params,
 		                OSSL_CAPABILITY_TLS_SIGALG_CODE_POINT);
-    if (p == NULL || !OSSL_PARAM_get_uint(p, &code_point)
-		  || code_point > UINT16_MAX) {
+    if (p == NULL
+        || !OSSL_PARAM_get_uint(p, &code_point)
+        || code_point > UINT16_MAX) {
         ERR_raise(ERR_LIB_SSL, ERR_R_PASSED_INVALID_ARGUMENT);
         goto err;
     }
@@ -524,8 +537,12 @@ static int add_provider_sigalgs(const OSSL_PARAM params[], void *data)
     }
 
     p = OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_SIGALG_MIN_TLS);
-    if (p == NULL || !OSSL_PARAM_get_int(p, &sinf->mintls) ||
-		    sinf->mintls != TLS1_3_VERSION) {
+    if (p == NULL || !OSSL_PARAM_get_int(p, &sinf->mintls)) {
+        ERR_raise(ERR_LIB_SSL, ERR_R_PASSED_INVALID_ARGUMENT);
+        goto err;
+    }
+    if ((sinf->mintls != 0) && (sinf->mintls != -1) &&
+        ((sinf->mintls < TLS1_VERSION))) {
         ERR_raise(ERR_LIB_SSL, ERR_R_PASSED_INVALID_ARGUMENT);
         goto err;
     }
@@ -536,7 +553,7 @@ static int add_provider_sigalgs(const OSSL_PARAM params[], void *data)
         goto err;
     }
     if ((sinf->maxtls != 0) && (sinf->maxtls != -1) &&
-        (sinf->maxtls < sinf->mintls)) {
+        ((sinf->maxtls < sinf->mintls) || (sinf->maxtls > TLS_MAX_VERSION))) {
         ERR_raise(ERR_LIB_SSL, ERR_R_PASSED_INVALID_ARGUMENT);
         goto err;
     }
@@ -575,7 +592,26 @@ static int add_provider_sigalgs(const OSSL_PARAM params[], void *data)
          * behaviour)?
          */
         if (EVP_KEYMGMT_get0_provider(keymgmt) == provider) {
-            /* We have a match - so we will use this signature */
+            /* We have a match - so we could use this signature */
+            /* Check proper object registration first, though */
+            if (sinf->oid) {
+                /* don't care about return value as this may have been
+                 * done within providers or previous calls to
+                 * add_provider_sigalgs
+                 */
+                OBJ_create(sinf->oid, sinf->tlsname, sinf->tlsname_long);
+                OBJ_add_sigid(OBJ_txt2nid(sinf->oid),
+                              sinf->hash_algorithm?
+                                    OBJ_txt2nid(sinf->hash_algorithm):
+                                    NID_undef,
+                              OBJ_txt2nid(sinf->oid));
+	    }
+	    /* sanity check: Without successful registration don't use alg */
+	    if ((OBJ_txt2nid(sinf->tlsname) == NID_undef) ||
+                (OBJ_nid2obj(OBJ_txt2nid(sinf->tlsname)) == NULL)) {
+                    ERR_raise(ERR_LIB_SSL, ERR_R_PASSED_INVALID_ARGUMENT);
+		    goto err;
+	    }
             ctx->sigalg_list_len++;
             sinf = NULL;
         }
@@ -585,9 +621,15 @@ static int add_provider_sigalgs(const OSSL_PARAM params[], void *data)
  err:
     if (sinf != NULL) {
         OPENSSL_free(sinf->tlsname);
+        sinf->tlsname = NULL;
+        OPENSSL_free(sinf->tlsname_long);
+        sinf->tlsname_long = NULL;
         OPENSSL_free(sinf->realname);
+        sinf->realname = NULL;
         OPENSSL_free(sinf->algorithm);
-        sinf->algorithm = sinf->tlsname = sinf->realname = NULL;
+        sinf->algorithm = NULL;
+        OPENSSL_free(sinf->hash_algorithm);
+        sinf->hash_algorithm = NULL;
     }
     return ret;
 }

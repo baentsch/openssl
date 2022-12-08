@@ -847,6 +847,7 @@ typedef struct tls_group_info_st {
 
 typedef struct tls_sigalg_info_st {
     char *tlsname;           /* Algorithm Name as in TLS specs */
+    char *tlsname_long;      /* Long Algorithm Name */
     char *realname;          /* Algorithm Name according to provider */
     char *algorithm;         /* Algorithm name to fetch */
     char *oid;               /* OID of algorithm */
