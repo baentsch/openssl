@@ -625,51 +625,86 @@ algorithm can have the following details supplied:
 
 =over 4
 
-=item "tls-sigalg-name" (B<OSSL_CAPABILITY_TLS_SIGALG_NAME>) <UTF8 string>
+=item "iana-name" (B<OSSL_CAPABILITY_TLS_SIGALG_IANA_NAME>) <UTF8 string>
 
 The name of the signature algorithm as given in the IANA TLS Signature Scheme
 registry as "Description":
 L<https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-signaturescheme>.
-This value is used to refer to the algorithm within OpenSSL as its short name.
 This value is mandatory to be supplied.
 
-=item "tls-sigalg-longname" (B<OSSL_CAPABILITY_TLS_SIGALG_LONGNAME>) <UTF8 string>
-
-The long name of the signature algorithm as used by OBJ_create().
-This value is optional to be supplied.
-
-=item "tls-sigalg-name-internal" (B<OSSL_CAPABILITY_TLS_SIGALG_NAME_INTERNAL>) <UTF8 string>
-
-The name of the signature algorithm as known by the provider. This could be
-the same as the "tls-sigalg-name", but does not have to be.
-This value is mandatory to be supplied.
-
-=item "tls-sigalg-code-point" (B<OSSL_CAPABILITY_TLS_SIGALG_CODE_POINT>) <unsigned integer>
+=item "iana-code-point" (B<OSSL_CAPABILITY_TLS_SIGALG_CODE_POINT>) <unsigned integer>
 
 The TLS algorithm ID value as given in the IANA TLS SignatureScheme registry.
 This value is mandatory to be supplied.
 
-=item "tls-sigalg-alg" (B<OSSL_CAPABILITY_TLS_SIGALG_ALG>) <UTF8 string>
+=item "sigalg-name" (B<OSSL_CAPABILITY_TLS_SIGALG_NAME>) <UTF8 string>
 
-The name of a Key Management algorithm that should be used with this
-algorithm. The algorithm must support key and parameter generation.
+A name for the full (possibly composite hash-and-signature) signature
+algorithm.
+The provider may, but is not obligated to provide an signature implementation
+with this name; if it doesn't, this is assumed to be a composite of a pure
+signature algorithm and a hash algorithm, which must be given with the
+parameters "sig-name" and "hash-name".
 This value is mandatory to be supplied.
 
-=item "tls-sigalg-oid" (B<OSSL_CAPABILITY_TLS_SIGALG_OID>) <UTF8 string>
+=item "sigalg-oid" (B<OSSL_CAPABILITY_TLS_SIGALG_OID>) <UTF8 string>
 
-The OID of the signature algorithm.
-This value is optional to be supplied. If supplied, the OID is automatically
-registered for use. If not supplied, the provider must register the OID itself,
-e.g., via core_obj_create().
+The OID of the "sig-name" algorithm in canonical numeric text form. If
+this parameter is given, OBJ_create() will be used to create and OBJ and
+a NID for this OID, using the "sigalg-name" parameter for its (short) name.
+Otherwise, it's assumed to already exist in the object database, possibly
+done by the provider with the core_obj_create() upcall.
+This value is optional to be supplied.
 
-=item "tls-sigalg-hashalg" (B<OSSL_CAPABILITY_TLS_SIGALG_HASHALG>) <UTF8 string>
+=item "sig-name" (B<OSSL_CAPABILITY_TLS_SIGALG_SIG_NAME>) <UTF8 string>
 
-The name of the hash algorithm to be used with this signature algorithm.
-This value is optional to be supplied. If not supplied, or if using the
-value "" (empty string) the signature algorithm must be able to process
-arbitrary length data in sign/verify operations.
+The name of the pure signature algorithm that is part of a composite
+"sigalg-name". If "sigalg-name" is implemented by the provider, this
+parameter is redundant and must not be given.
+This value is optional to be supplied.
 
-=item "tls-sigalg-sec-bits" (B<OSSL_CAPABILITY_TLS_SIGALG_SECURITY_BITS>) <unsigned integer>
+=item "sig-oid" (B<OSSL_CAPABILITY_TLS_SIGALG_SIG_OID>) <UTF8 string>
+
+The OID of the "sig-name" algorithm in canonical numeric text form. If
+this parameter is given, OBJ_create() will be used to create an OBJ and
+a NID for this OID, using the "sig-name" parameter for its (short) name.
+Otherwise, it's assumed to already exist in the object database, possibly
+done by the provider with the core_obj_create() upcall.
+This value is optional to be supplied.
+
+=item "hash-name" (B<OSSL_CAPABILITY_TLS_SIGALG_HASH_NAME>) <UTF8 string>
+
+The name of the hash algorithm that is part of a composite "sigalg-name".
+If "sigalg-name" is implemented by the provider, this parameter is redundant
+and must not be given.
+This value is optional to be supplied.
+
+=item "hash-oid" (B<OSSL_CAPABILITY_TLS_SIGALG_HASH_OID>) <UTF8 string>
+
+The OID of the "hash-name" algorithm in canonical numeric text form. If
+this parameter is given, OBJ_create() will be used to create an OBJ and
+a NID for this OID, using the "hash-name" parameter for its (short) name.
+Otherwise, it's assumed to already exist in the object database, possibly
+done by the provider with the core_obj_create() upcall.
+This value is optional to be supplied.
+
+=item "key-type" (B<OSSL_CAPABILITY_TLS_SIGALG_KEYTYPE>) <UTF8 string>
+
+The key type of the public key of applicable certificates. If this parameter
+isn't present, it's assumed to be the same as "sig-name" if that's present,
+otherwise "sigalg-name".
+This value is optional to be supplied.
+
+=item "key-type-oid" (B<OSSL_CAPABILITY_TLS_SIGALG_KEYTYPE_OID>) <UTF8 string>
+
+The OID of the "key-type" in canonical numeric text form. If
+this parameter is given, OBJ_create() will be used to create an OBJ and
+a NID for this OID, using the "key-type" parameter for its (short) name.
+Otherwise, it's assumed to already exist in the object database, possibly
+done by the provider with the core_obj_create() upcall.
+This value is optional to be supplied.
+
+=item "sec-bits" (B<OSSL_CAPABILITY_TLS_SIGALG_SECURITY_BITS>) <unsigned integer>
 
 The number of bits of security offered by keys of this algorithm. The number
 of bits should be comparable with the ones given in table 2 and 3 of the NIST

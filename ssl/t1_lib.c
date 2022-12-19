@@ -451,73 +451,24 @@ static int add_provider_sigalgs(const OSSL_PARAM params[], void *data)
 
     sinf = &ctx->sigalg_list[ctx->sigalg_list_len];
 
+    /* First, mandatory parameters */
     p = OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_SIGALG_NAME);
     if (p == NULL || p->data_type != OSSL_PARAM_UTF8_STRING) {
         ERR_raise(ERR_LIB_SSL, ERR_R_PASSED_INVALID_ARGUMENT);
         goto err;
     }
-    sinf->tlsname = OPENSSL_strdup(p->data);
-    if (sinf->tlsname == NULL)
+    sinf->sigalg_name = OPENSSL_strdup(p->data);
+    if (sinf->sigalg_name == NULL)
         goto err;
 
-    /* Optional */
-    p = OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_SIGALG_LONGNAME);
-    if (p == NULL)
-        sinf->tlsname_long = NULL;
-    else if (p->data_type != OSSL_PARAM_UTF8_STRING)
-        goto err;
-    else {
-        sinf->tlsname_long = OPENSSL_strdup(p->data);
-        if (sinf->tlsname_long == NULL)
-            goto err;
-    }
-
-    p = OSSL_PARAM_locate_const(params,
-		                OSSL_CAPABILITY_TLS_SIGALG_NAME_INTERNAL);
+    p = OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_SIGALG_IANA_NAME);
     if (p == NULL || p->data_type != OSSL_PARAM_UTF8_STRING) {
         ERR_raise(ERR_LIB_SSL, ERR_R_PASSED_INVALID_ARGUMENT);
         goto err;
     }
-    sinf->realname = OPENSSL_strdup(p->data);
-    if (sinf->realname == NULL)
+    sinf->name = OPENSSL_strdup(p->data);
+    if (sinf->name == NULL)
         goto err;
-
-    p = OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_SIGALG_ALG);
-    if (p == NULL || p->data_type != OSSL_PARAM_UTF8_STRING) {
-        ERR_raise(ERR_LIB_SSL, ERR_R_PASSED_INVALID_ARGUMENT);
-        goto err;
-    }
-    sinf->algorithm = OPENSSL_strdup(p->data);
-    if (sinf->algorithm == NULL)
-        goto err;
-
-    /* Optional */
-    p = OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_SIGALG_HASHALG);
-    if (p == NULL) {
-        sinf->hash_algorithm = NULL;
-    }
-    else if (p->data_type != OSSL_PARAM_UTF8_STRING) {
-        goto err;
-    }
-    else {
-        sinf->hash_algorithm = OPENSSL_strdup(p->data);
-        if (sinf->hash_algorithm == NULL)
-            goto err;
-    }
-
-    /* Optional */
-    p = OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_SIGALG_OID);
-    if (p == NULL) {
-        sinf->oid = NULL;
-    }
-    else if (p->data_type != OSSL_PARAM_UTF8_STRING) {
-        goto err;
-    }
-    else {
-        sinf->oid = OPENSSL_strdup(p->data);
-	if (sinf->oid == NULL)
-            goto err;
-    }
 
     p = OSSL_PARAM_locate_const(params,
 		                OSSL_CAPABILITY_TLS_SIGALG_CODE_POINT);
@@ -534,6 +485,84 @@ static int add_provider_sigalgs(const OSSL_PARAM params[], void *data)
     if (p == NULL || !OSSL_PARAM_get_uint(p, &sinf->secbits)) {
         ERR_raise(ERR_LIB_SSL, ERR_R_PASSED_INVALID_ARGUMENT);
         goto err;
+    }
+
+    /* Now, optional parameters */
+    p = OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_SIGALG_OID);
+    if (p == NULL)
+        sinf->sigalg_oid = NULL;
+    else if (p->data_type != OSSL_PARAM_UTF8_STRING)
+        goto err;
+    else {
+        sinf->sigalg_oid = OPENSSL_strdup(p->data);
+        if (sinf->sigalg_oid == NULL)
+            goto err;
+    }
+
+    p = OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_SIGALG_SIG_NAME);
+    if (p == NULL)
+        sinf->sig_name = NULL;
+    else if (p->data_type != OSSL_PARAM_UTF8_STRING)
+        goto err;
+    else {
+        sinf->sig_name = OPENSSL_strdup(p->data);
+        if (sinf->sig_name == NULL)
+            goto err;
+    }
+
+    p = OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_SIGALG_SIG_OID);
+    if (p == NULL)
+        sinf->sig_oid = NULL;
+    else if (p->data_type != OSSL_PARAM_UTF8_STRING)
+        goto err;
+    else {
+        sinf->sig_oid = OPENSSL_strdup(p->data);
+        if (sinf->sig_oid == NULL)
+            goto err;
+    }
+
+    p = OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_SIGALG_HASH_NAME);
+    if (p == NULL)
+        sinf->hash_name = NULL;
+    else if (p->data_type != OSSL_PARAM_UTF8_STRING)
+        goto err;
+    else {
+        sinf->hash_name = OPENSSL_strdup(p->data);
+        if (sinf->hash_name == NULL)
+            goto err;
+    }
+
+    p = OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_SIGALG_HASH_OID);
+    if (p == NULL)
+        sinf->hash_oid = NULL;
+    else if (p->data_type != OSSL_PARAM_UTF8_STRING)
+        goto err;
+    else {
+        sinf->hash_oid = OPENSSL_strdup(p->data);
+        if (sinf->hash_oid == NULL)
+            goto err;
+    }
+
+    p = OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_SIGALG_KEYTYPE);
+    if (p == NULL)
+        sinf->keytype = NULL;
+    else if (p->data_type != OSSL_PARAM_UTF8_STRING)
+        goto err;
+    else {
+        sinf->keytype = OPENSSL_strdup(p->data);
+        if (sinf->keytype == NULL)
+            goto err;
+    }
+
+    p = OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_SIGALG_KEYTYPE_OID);
+    if (p == NULL)
+        sinf->keytype_oid = NULL;
+    else if (p->data_type != OSSL_PARAM_UTF8_STRING)
+        goto err;
+    else {
+        sinf->keytype_oid = OPENSSL_strdup(p->data);
+        if (sinf->keytype_oid == NULL)
+            goto err;
     }
 
     p = OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_SIGALG_MIN_TLS);
@@ -577,7 +606,8 @@ static int add_provider_sigalgs(const OSSL_PARAM params[], void *data)
      */
     ret = 1;
     ERR_set_mark();
-    keymgmt = EVP_KEYMGMT_fetch(ctx->libctx, sinf->algorithm, ctx->propq);
+    keymgmt = EVP_KEYMGMT_fetch(ctx->libctx, sinf->keytype?sinf->keytype:
+		    sinf->sig_name?sinf->sig_name:sinf->sigalg_name, ctx->propq);
     if (keymgmt != NULL) {
         /*
          * We have successfully fetched the algorithm - however if the provider
@@ -592,23 +622,39 @@ static int add_provider_sigalgs(const OSSL_PARAM params[], void *data)
          * behaviour)?
          */
         if (EVP_KEYMGMT_get0_provider(keymgmt) == provider) {
+            int keytype_nid;
             /* We have a match - so we could use this signature */
             /* Check proper object registration first, though */
-            if (sinf->oid) {
-                /* don't care about return value as this may have been
-                 * done within providers or previous calls to
-                 * add_provider_sigalgs
-                 */
-                OBJ_create(sinf->oid, sinf->tlsname, sinf->tlsname_long);
-                OBJ_add_sigid(OBJ_txt2nid(sinf->oid),
-                              sinf->hash_algorithm?
-                                    OBJ_txt2nid(sinf->hash_algorithm):
-                                    NID_undef,
-                              OBJ_txt2nid(sinf->oid));
-	    }
+            /* don't care about return value as this may have been
+             * done within providers or previous calls to
+             * add_provider_sigalgs
+             */
+            OBJ_create(sinf->sigalg_oid, sinf->sigalg_name, NULL);
+	    if (sinf->sig_name)
+                OBJ_create(sinf->sig_oid, sinf->sig_name, NULL);
+	    if (sinf->keytype) {
+                keytype_nid = OBJ_create(sinf->keytype_oid, sinf->keytype, NULL);
+            }
+            else {
+                if (sinf->sig_name)
+                    keytype_nid = OBJ_txt2nid(sinf->sig_name);
+                else
+                    keytype_nid = OBJ_txt2nid(sinf->sigalg_name);
+            }
+	    if (sinf->hash_name) {
+                OBJ_create(sinf->hash_oid, sinf->hash_name, NULL);
+                OBJ_add_sigid(OBJ_txt2nid(sinf->sig_name),
+                              OBJ_txt2nid(sinf->hash_name),
+                              keytype_nid);
+            }
+	    else {
+                OBJ_add_sigid(OBJ_txt2nid(sinf->sigalg_name),
+                              NID_undef,
+                              keytype_nid);
+            }
 	    /* sanity check: Without successful registration don't use alg */
-	    if ((OBJ_txt2nid(sinf->tlsname) == NID_undef) ||
-                (OBJ_nid2obj(OBJ_txt2nid(sinf->tlsname)) == NULL)) {
+	    if ((OBJ_txt2nid(sinf->sigalg_name) == NID_undef) ||
+                (OBJ_nid2obj(OBJ_txt2nid(sinf->sigalg_name)) == NULL)) {
                     ERR_raise(ERR_LIB_SSL, ERR_R_PASSED_INVALID_ARGUMENT);
 		    goto err;
 	    }
@@ -620,16 +666,24 @@ static int add_provider_sigalgs(const OSSL_PARAM params[], void *data)
     ERR_pop_to_mark();
  err:
     if (sinf != NULL) {
-        OPENSSL_free(sinf->tlsname);
-        sinf->tlsname = NULL;
-        OPENSSL_free(sinf->tlsname_long);
-        sinf->tlsname_long = NULL;
-        OPENSSL_free(sinf->realname);
-        sinf->realname = NULL;
-        OPENSSL_free(sinf->algorithm);
-        sinf->algorithm = NULL;
-        OPENSSL_free(sinf->hash_algorithm);
-        sinf->hash_algorithm = NULL;
+        OPENSSL_free(sinf->name);
+        sinf->name = NULL;
+        OPENSSL_free(sinf->sigalg_name);
+        sinf->sigalg_name = NULL;
+        OPENSSL_free(sinf->sigalg_oid);
+        sinf->sigalg_oid = NULL;
+        OPENSSL_free(sinf->sig_name);
+        sinf->sig_name = NULL;
+        OPENSSL_free(sinf->sig_oid);
+        sinf->sig_oid = NULL;
+        OPENSSL_free(sinf->hash_name);
+        sinf->hash_name = NULL;
+        OPENSSL_free(sinf->hash_oid);
+        sinf->hash_oid = NULL;
+        OPENSSL_free(sinf->keytype);
+        sinf->keytype = NULL;
+        OPENSSL_free(sinf->keytype_oid);
+        sinf->keytype_oid = NULL;
     }
     return ret;
 }
@@ -663,7 +717,7 @@ int ssl_load_sigalgs(SSL_CTX *ctx)
         if (ctx->ssl_cert_info == NULL)
             return 0;
         for(i = 0; i < ctx->sigalg_list_len; i++) {
-            ctx->ssl_cert_info[i].nid = OBJ_sn2nid(ctx->sigalg_list[i].algorithm);
+            ctx->ssl_cert_info[i].nid = OBJ_sn2nid(ctx->sigalg_list[i].sigalg_name);
             ctx->ssl_cert_info[i].amask = SSL_aANY;
         }
     }
@@ -1471,14 +1525,14 @@ int ssl_setup_sig_algs(SSL_CTX *ctx)
     cache_idx = OSSL_NELEM(sigalg_lookup_tbl);
     for (i = 0; i < ctx->sigalg_list_len; i++) {
 	TLS_SIGALG_INFO si = ctx->sigalg_list[i];
-	cache[cache_idx].name = si.algorithm;
+	cache[cache_idx].name = si.name;
 	cache[cache_idx].sigalg = si.code_point;
 	tls12_sigalgs_list[cache_idx] = si.code_point;
-	cache[cache_idx].hash = OBJ_sn2nid(si.hash_algorithm);
+	cache[cache_idx].hash = si.hash_name?OBJ_sn2nid(si.hash_name):NID_undef;
 	cache[cache_idx].hash_idx = ssl_get_md_idx(cache[cache_idx].hash);
-	cache[cache_idx].sig = OBJ_sn2nid(si.algorithm);
+	cache[cache_idx].sig = OBJ_sn2nid(si.sigalg_name);
 	cache[cache_idx].sig_idx = i + SSL_PKEY_NUM;
-	cache[cache_idx].sigandhash = cache[cache_idx].sig;
+	cache[cache_idx].sigandhash = OBJ_sn2nid(si.sigalg_name);
 	cache[cache_idx].curve = NID_undef;
         /* all provided sigalgs are enabled by load */
         cache[cache_idx].enabled = 1;

@@ -3996,11 +3996,15 @@ void SSL_CTX_free(SSL_CTX *a)
     }
     OPENSSL_free(a->group_list);
     for (j = 0; j < a->sigalg_list_len; j++) {
-        OPENSSL_free(a->sigalg_list[j].tlsname);
-        OPENSSL_free(a->sigalg_list[j].realname);
-        OPENSSL_free(a->sigalg_list[j].algorithm);
-        OPENSSL_free(a->sigalg_list[j].oid);
-        OPENSSL_free(a->sigalg_list[j].hash_algorithm);
+        OPENSSL_free(a->sigalg_list[j].name);
+        OPENSSL_free(a->sigalg_list[j].sigalg_name);
+        OPENSSL_free(a->sigalg_list[j].sigalg_oid);
+        OPENSSL_free(a->sigalg_list[j].sig_name);
+        OPENSSL_free(a->sigalg_list[j].sig_oid);
+        OPENSSL_free(a->sigalg_list[j].hash_name);
+        OPENSSL_free(a->sigalg_list[j].hash_oid);
+        OPENSSL_free(a->sigalg_list[j].keytype);
+        OPENSSL_free(a->sigalg_list[j].keytype_oid);
     }
     OPENSSL_free(a->sigalg_list);
     OPENSSL_free(a->ssl_cert_info);

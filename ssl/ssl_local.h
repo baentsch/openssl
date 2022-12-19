@@ -846,13 +846,16 @@ typedef struct tls_group_info_st {
 } TLS_GROUP_INFO;
 
 typedef struct tls_sigalg_info_st {
-    char *tlsname;           /* Algorithm Name as in TLS specs */
-    char *tlsname_long;      /* Long Algorithm Name */
-    char *realname;          /* Algorithm Name according to provider */
-    char *algorithm;         /* Algorithm name to fetch */
-    char *oid;               /* OID of algorithm */
-    char *hash_algorithm;    /* Name of hash algorithm if any */
-    uint16_t code_point;     /* Code point of algorithm */
+    char *name;              /* name as in IANA TLS specs */
+    uint16_t code_point;     /* IANA-specified code point of sigalg-name */
+    char *sigalg_name;       /* (combined) sigalg name */
+    char *sigalg_oid;        /* (combined) sigalg OID */
+    char *sig_name;          /* pure signature algorithm name */
+    char *sig_oid;           /* pure signature algorithm OID */
+    char *hash_name;         /* hash algorithm name */
+    char *hash_oid;          /* hash algorithm OID */
+    char *keytype;           /* keytype name */
+    char *keytype_oid;       /* keytype OID */
     unsigned int secbits;    /* Bits of security (from SP800-57) */
     int mintls;              /* Minimum TLS version, -1 unsupported */
     int maxtls;              /* Maximum TLS version (or 0 for undefined) */
