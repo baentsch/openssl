@@ -643,9 +643,10 @@ static int add_provider_sigalgs(const OSSL_PARAM params[], void *data)
             }
 	    if (sinf->hash_name) {
                 OBJ_create(sinf->hash_oid, sinf->hash_name, NULL);
-                OBJ_add_sigid(OBJ_txt2nid(sinf->sig_name),
-                              OBJ_txt2nid(sinf->hash_name),
-                              keytype_nid);
+                if (sinf->sig_name)
+                    OBJ_add_sigid(OBJ_txt2nid(sinf->sig_name),
+                                  OBJ_txt2nid(sinf->hash_name),
+                                  keytype_nid);
             }
 	    else {
                 OBJ_add_sigid(OBJ_txt2nid(sinf->sigalg_name),
