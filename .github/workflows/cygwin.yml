@@ -1,0 +1,44 @@
+# Starting off with OpenSSL workflow file: We need to build OpenSSL too...
+
+name: Cygwin tests
+
+on: [pull_request, push]
+
+permissions:
+  contents: read
+
+jobs:
+  cygwin:
+    # Run a job for each of the specified target architectures:
+    strategy:
+      matrix:
+        os:
+          - windows-2019
+#          - windows-2022
+        platform:
+          - arch: win64
+            config: -DCMAKE_C_COMPILER=gcc 
+#          - arch: win32
+#            config: -DCMAKE_C_COMPILER=gcc --strict-warnings no-fips enable-quic
+    runs-on: ${{matrix.os}}
+    env:
+      CYGWIN_NOWINPATH: 1
+      SHELLOPTS: igncr
+      MAKE_PARAMS: -j 4
+    steps:
+    - uses: cygwin/cygwin-install-action@master
+      with:
+         packages: perl git make gcc-core
+# Disabled as cygwin seems to cause PATH problems with this default action
+#    - uses: actions/checkout@v3
+    - name: Check repo
+      run: cygcheck -V
+    - name: Full cygcheck status
+      run: cygcheck -s -v -r -h 
+    - name: Clone repo 
+      run: bash -c "pwd && git clone --branch ${{ github.ref_name }} --depth 1 https://github.com/${{ github.repository }}.git"
+    - name: Full build
+      run: bash -c "pwd && cd openssl && echo 'PATH = $PATH' && ls && ./config ${{ matrix.platform.config }} && make $MAKE_PARAMS"
+    - name: Run openssl tests
+      run: bash -c "cd openssl && make test"
+
