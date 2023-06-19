@@ -71,7 +71,8 @@ static int obj_provider_init(const OSSL_CORE_HANDLE *handle,
 
     if (!c_obj_create(handle, DIGEST_OID, DIGEST_SN, DIGEST_LN)
             || !c_obj_create(handle, SIG_OID, SIG_SN, SIG_LN)
-            || !c_obj_create(handle, SIGALG_OID, SIGALG_SN, SIGALG_LN))
+            || !c_obj_create(handle, SIGALG_OID, SIGALG_SN, SIGALG_LN)
+            || (OBJ_sn2nid(DIGEST_SN) == NID_undef))
         return 0;
 
     if (!c_obj_create(handle, NODIG_SIG_OID, NODIG_SIG_SN, NODIG_SIG_LN)
