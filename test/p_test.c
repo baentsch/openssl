@@ -60,6 +60,17 @@ static OSSL_FUNC_provider_get_params_fn p_get_params;
 static OSSL_FUNC_provider_get_reason_strings_fn p_get_reason_strings;
 static OSSL_FUNC_provider_teardown_fn p_teardown;
 
+/* test signature ids requiring digest */
+#define SIG_OID "1.3.6.1.4.1.16604.998877.1"
+#define SIG_SN "my-sig"
+#define SIG_LN "my-sig-long"
+#define DIGEST_OID "1.3.6.1.4.1.16604.998877.2"
+#define DIGEST_SN "my-digest"
+#define DIGEST_LN "my-digest-long"
+#define SIGALG_OID "1.3.6.1.4.1.16604.998877.3"
+#define SIGALG_SN "my-sigalg"
+#define SIGALG_LN "my-sigalg-long"
+
 static void p_set_error(int lib, int reason, const char *file, int line,
                         const char *func, const char *fmt, ...)
 {
@@ -232,6 +243,7 @@ int OSSL_provider_init(const OSSL_CORE_HANDLE *handle,
 {
     P_TEST_CTX *ctx;
     const OSSL_DISPATCH *in = oin;
+    OSSL_FUNC_core_obj_create_fn *c_obj_create = NULL;
 
     for (; in->function_id != 0; in++) {
         switch (in->function_id) {
@@ -249,6 +261,9 @@ int OSSL_provider_init(const OSSL_CORE_HANDLE *handle,
             break;
         case OSSL_FUNC_CORE_VSET_ERROR:
             c_vset_error = OSSL_FUNC_core_vset_error(in);
+            break;
+        case OSSL_FUNC_CORE_OBJ_CREATE:
+            c_obj_create = OSSL_FUNC_core_obj_create(in);
             break;
         default:
             /* Just ignore anything we don't understand */
@@ -295,6 +310,13 @@ int OSSL_provider_init(const OSSL_CORE_HANDLE *handle,
         }
     }
 #endif
+
+    if (!c_obj_create(handle, DIGEST_OID, DIGEST_SN, DIGEST_LN)
+            || !c_obj_create(handle, SIG_OID, SIG_SN, SIG_LN)
+            || !c_obj_create(handle, SIGALG_OID, SIGALG_SN, SIGALG_LN)
+/*            || (OBJ_sn2nid(DIGEST_SN) == NID_undef) */)
+        return 0;
+//printf("new NID = %d\n", OBJ_sn2nid(DIGEST_SN));
 
     /*
      * Set a spurious error to check error handling works correctly. This will

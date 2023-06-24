@@ -1,0 +1,16 @@
+# Comment out the next line to ignore configuration errors
+config_diagnostics = 1
+
+
+openssl_conf = openssl_init
+
+[openssl_init]
+providers = providers
+
+[providers]
+p_test = p_test
+
+[p_test]
+module = p_test.so
+activate = 1
+greeting = Hello OpenSSL, greetings from Loaded Test Provider

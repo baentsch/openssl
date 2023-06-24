@@ -11,8 +11,12 @@
 #include <openssl/provider.h>
 #include "testutil.h"
 
+#define DIGEST_SN "my-digest"
+
+
 extern OSSL_provider_init_fn PROVIDER_INIT_FUNCTION_NAME;
 
+static char *config_file = NULL;
 static char buf[256];
 static OSSL_PARAM greeting_request[] = {
     { "greeting", OSSL_PARAM_UTF8_STRING, buf, sizeof(buf) },
@@ -61,15 +65,31 @@ static int test_provider(OSSL_LIB_CTX **libctx, const char *name,
      */
     if (!TEST_ptr(base = OSSL_PROVIDER_load(*libctx, "base")))
         goto err;
-    if (!TEST_ptr(prov = OSSL_PROVIDER_load(*libctx, name)))
-        goto err;
+    if (config_file) {
+        if (!OSSL_LIB_CTX_load_config(*libctx, config_file)) {
+printf("Failed to load %s\n", config_file);
+            goto err;
+        }
+else printf("Loaded %s OK\n", config_file);
+        if (!OSSL_PROVIDER_available(*libctx, name))
+            goto err;
+    }
+    else {
+        if (!TEST_ptr(prov = OSSL_PROVIDER_load(*libctx, name)))
+            goto err;
+    }
 
+    if (NID_undef == OBJ_sn2nid(DIGEST_SN)) {
+printf("NID not set!!. Error.\n");
+        goto err;
+    }
+else printf("new NID = %d\n", OBJ_sn2nid(DIGEST_SN));
     /*
      * Once the provider is loaded we clear the default properties and fetches
      * should start working again.
      */
     EVP_set_default_properties(*libctx, "");
-    if (dolegacycheck) {
+    if (dolegacycheck && prov) {
         if (!TEST_true(OSSL_PROVIDER_get_params(prov, digest_check))
                 || !TEST_true(digestsuccess))
             goto err;
@@ -87,22 +107,24 @@ static int test_provider(OSSL_LIB_CTX **libctx, const char *name,
             goto err;
         EVP_set_default_properties(*libctx, "");
     }
-    if (!TEST_true(OSSL_PROVIDER_get_params(prov, greeting_request))
+    if (prov) {
+      if(!TEST_true(OSSL_PROVIDER_get_params(prov, greeting_request))
             || !TEST_ptr(greeting = greeting_request[0].data)
             || !TEST_size_t_gt(greeting_request[0].data_size, 0)
             || !TEST_str_eq(greeting, expected_greeting))
         goto err;
 
-    /* Make sure we got the error we were expecting */
-    err = ERR_peek_last_error();
-    if (!TEST_int_gt(err, 0)
+      /* Make sure we got the error we were expecting */
+      err = ERR_peek_last_error();
+      if (!TEST_int_gt(err, 0)
             || !TEST_int_eq(ERR_GET_REASON(err), 1))
         goto err;
+    }
 
     OSSL_PROVIDER_unload(legacy);
     legacy = NULL;
 
-    if (dolegacycheck) {
+    if (dolegacycheck && prov) {
         /* Legacy provider should also be unloaded from child libctx */
         if (!TEST_true(OSSL_PROVIDER_get_params(prov, digest_check))
                 || !TEST_false(digestsuccess))
@@ -132,7 +154,7 @@ static int test_provider(OSSL_LIB_CTX **libctx, const char *name,
     if (!TEST_true(OSSL_PROVIDER_unload(base)))
         goto err;
     base = NULL;
-    if (!TEST_true(OSSL_PROVIDER_unload(prov)))
+    if (prov && !TEST_true(OSSL_PROVIDER_unload(prov)))
         goto err;
     prov = NULL;
 
@@ -224,6 +246,7 @@ typedef enum OPTION_choice {
     OPT_ERR = -1,
     OPT_EOF = 0,
     OPT_LOADED,
+    OPT_CONFIG_FILE,
     OPT_TEST_ENUM
 } OPTION_CHOICE;
 
@@ -232,6 +255,8 @@ const OPTIONS *test_get_options(void)
     static const OPTIONS test_options[] = {
         OPT_TEST_OPTIONS_DEFAULT_USAGE,
         { "loaded", OPT_LOADED, '-', "Run test with a loaded provider" },
+        { "config", OPT_CONFIG_FILE, '<',
+          "The configuration file to use for the libctx" },
         { NULL }
     };
     return test_options;
@@ -248,6 +273,9 @@ int setup_tests(void)
             break;
         case OPT_LOADED:
             loaded = 1;
+            break;
+        case OPT_CONFIG_FILE:
+            config_file = opt_arg();
             break;
         default:
             return 0;
