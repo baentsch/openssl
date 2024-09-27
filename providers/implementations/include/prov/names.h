@@ -384,3 +384,5 @@
 #define PROV_DESCS_RSA_PSS "OpenSSL RSA-PSS implementation"
 #define PROV_NAMES_SM2 "SM2:1.2.156.10197.1.301"
 #define PROV_DESCS_SM2 "OpenSSL SM2 implementation"
+#define PROV_NAMES_X25519_MLKEM768 "X25519-MLKEM768"
+#define PROV_DESCS_X25519_MLKEM768 "OpenSSL Hybrid X25519/MLKEM768 implementation"
