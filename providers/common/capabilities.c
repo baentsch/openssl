@@ -32,8 +32,7 @@ typedef struct tls_group_constants_st {
 } TLS_GROUP_CONSTANTS;
 
 static const TLS_GROUP_CONSTANTS group_list[] = {
-/* re-activate when testing is done TODO */
-/*    { OSSL_TLS_GROUP_ID_sect163k1, 80, TLS1_VERSION, TLS1_2_VERSION,
+    { OSSL_TLS_GROUP_ID_sect163k1, 80, TLS1_VERSION, TLS1_2_VERSION,
       DTLS1_VERSION, DTLS1_2_VERSION, 0 },
     { OSSL_TLS_GROUP_ID_sect163r1, 80, TLS1_VERSION, TLS1_2_VERSION,
       DTLS1_VERSION, DTLS1_2_VERSION, 0 },
@@ -86,22 +85,17 @@ static const TLS_GROUP_CONSTANTS group_list[] = {
       DTLS1_VERSION, DTLS1_2_VERSION, 0 },
     { OSSL_TLS_GROUP_ID_brainpoolP512r1, 256, TLS1_VERSION, TLS1_2_VERSION,
       DTLS1_VERSION, DTLS1_2_VERSION, 0 },
-*/
     { OSSL_TLS_GROUP_ID_x25519, 128, TLS1_VERSION, 0, DTLS1_VERSION, 0, 0},
-/*
     { OSSL_TLS_GROUP_ID_x448, 224, TLS1_VERSION, 0, DTLS1_VERSION, 0, 0 },
     { OSSL_TLS_GROUP_ID_brainpoolP256r1_tls13, 128, TLS1_3_VERSION, 0, -1, -1, 0 },
     { OSSL_TLS_GROUP_ID_brainpoolP384r1_tls13, 192, TLS1_3_VERSION, 0, -1, -1, 0 },
     { OSSL_TLS_GROUP_ID_brainpoolP512r1_tls13, 256, TLS1_3_VERSION, 0, -1, -1, 0 },
-*/
     /* Security bit values as given by BN_security_bits() */
-/*
     { OSSL_TLS_GROUP_ID_ffdhe2048, 112, TLS1_3_VERSION, 0, -1, -1, 0 },
     { OSSL_TLS_GROUP_ID_ffdhe3072, 128, TLS1_3_VERSION, 0, -1, -1, 0 },
     { OSSL_TLS_GROUP_ID_ffdhe4096, 128, TLS1_3_VERSION, 0, -1, -1, 0 },
     { OSSL_TLS_GROUP_ID_ffdhe6144, 128, TLS1_3_VERSION, 0, -1, -1, 0 },
     { OSSL_TLS_GROUP_ID_ffdhe8192, 192, TLS1_3_VERSION, 0, -1, -1, 0 },
-*/
     /* Security bit values as inferred from NIST strength */
     { OSSL_TLS_GROUP_ID_mlkem768, 192, TLS1_3_VERSION, 0, -1, -1, 1 },
 };
@@ -135,7 +129,6 @@ static const TLS_GROUP_CONSTANTS group_list[] = {
     }
 
 static const OSSL_PARAM param_group_list[][10] = {
-#if 0
 # ifndef OPENSSL_NO_EC
 #  ifndef OPENSSL_NO_EC2M
     TLS_GROUP_ENTRY("sect163k1", "sect163k1", "EC", 0),
@@ -216,9 +209,7 @@ static const OSSL_PARAM param_group_list[][10] = {
     TLS_GROUP_ENTRY("ffdhe6144", "ffdhe6144", "DH", 36),
     TLS_GROUP_ENTRY("ffdhe8192", "ffdhe8192", "DH", 37),
 # endif
-#endif // 0
-    TLS_GROUP_ENTRY("x25519", "X25519", "X25519", 0),
-    TLS_GROUP_ENTRY("MLKEM-768", "MLKEM-768", "MLKEM-768", 1 /*38*/),
+    TLS_GROUP_ENTRY("MLKEM-768", "MLKEM-768", "MLKEM-768", 38),
 };
 #endif /* !defined(OPENSSL_NO_EC) || !defined(OPENSSL_NO_DH) */
 
