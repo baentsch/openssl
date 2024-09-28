@@ -20,7 +20,7 @@
 #include "internal/e_os.h"
 
 /* If neither ec or dh is available then we have no TLS-GROUP capabilities */
-#if !defined(OPENSSL_NO_EC) || !defined(OPENSSL_NO_DH)
+#if (!defined(OPENSSL_NO_EC) || !defined(OPENSSL_NO_DH)) && !defined(OPENSSL_NO_PQ)
 typedef struct tls_group_constants_st {
     unsigned int group_id;   /* Group ID */
     unsigned int secbits;    /* Bits of security */
@@ -209,13 +209,15 @@ static const OSSL_PARAM param_group_list[][10] = {
     TLS_GROUP_ENTRY("ffdhe6144", "ffdhe6144", "DH", 36),
     TLS_GROUP_ENTRY("ffdhe8192", "ffdhe8192", "DH", 37),
 # endif
+# ifndef OPENSSL_NO_PQ
     TLS_GROUP_ENTRY("MLKEM-768", "MLKEM-768", "MLKEM-768", 38),
+#endif
 };
-#endif /* !defined(OPENSSL_NO_EC) || !defined(OPENSSL_NO_DH) */
+#endif /* !defined(OPENSSL_NO_EC) || !defined(OPENSSL_NO_DH) && !defined(OPENSSL_NO_PQ)*/
 
 static int tls_group_capability(OSSL_CALLBACK *cb, void *arg)
 {
-#if !defined(OPENSSL_NO_EC) || !defined(OPENSSL_NO_DH)
+#if (!defined(OPENSSL_NO_EC) || !defined(OPENSSL_NO_DH)) && !defined(OPENSSL_NO_PQ)
     size_t i;
 
     for (i = 0; i < OSSL_NELEM(param_group_list); i++)
