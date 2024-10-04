@@ -21,6 +21,23 @@
 #include "prov/providercommon.h"
 #include "internal/mlkem.h"
 
+#ifdef NDEBUG
+#define MLKEM_KEM_PRINTF(a)
+#define MLKEM_KEM_PRINTF2(a, b)
+#define MLKEM_KEM_PRINTF3(a, b, c)
+#else
+#define MLKEM_KEM_PRINTF(a)                                                       \
+    if (getenv("MLKEMKEM"))                                                       \
+    printf(a)
+#define MLKEM_KEM_PRINTF2(a, b)                                                   \
+    if (getenv("MLKEMKEM"))                                                       \
+    printf(a, b)
+#define MLKEM_KEM_PRINTF3(a, b, c)                                                \
+    if (getenv("MLKEMKEM"))                                                       \
+    printf(a, b, c)
+#endif // NDEBUG
+
+
 typedef struct {
     OSSL_LIB_CTX *libctx;
     MLKEM_KEY *key;
@@ -37,12 +54,14 @@ static OSSL_FUNC_kem_set_ctx_params_fn mlkem_set_ctx_params;
 
 static void *mlkem_newctx(void *provctx)
 {
-    PROV_MLKEM_CTX *ctx =  OPENSSL_zalloc(sizeof(*ctx));
+    PROV_MLKEM_CTX *ctx = OPENSSL_zalloc(sizeof(*ctx));
 
+    MLKEM_KEM_PRINTF("MLKEMKEM newctx called\n");
     if (ctx == NULL)
         return NULL;
     ctx->libctx = PROV_LIBCTX_OF(provctx);
 
+    MLKEM_KEM_PRINTF2("MLKEMKEM newctx returns %p\n", ctx);
     return ctx;
 }
 
@@ -50,6 +69,7 @@ static void mlkem_freectx(void *vctx)
 {
     PROV_MLKEM_CTX *ctx = (PROV_MLKEM_CTX *)vctx;
 
+    MLKEM_KEM_PRINTF2("MLKEMKEM freectx %p\n", ctx);
     OPENSSL_free(ctx);
 }
 
@@ -59,6 +79,7 @@ static int mlkem_init(void *vctx, int operation, void *vkey, void *vauth,
     PROV_MLKEM_CTX *ctx = (PROV_MLKEM_CTX *)vctx;
     MLKEM_KEY *mlkemkey = vkey;
 
+    MLKEM_KEM_PRINTF3("MLKEMKEM init %p / %p\n", ctx, mlkemkey);
     if (!ossl_prov_is_running())
         return 0;
 
@@ -67,6 +88,7 @@ static int mlkem_init(void *vctx, int operation, void *vkey, void *vauth,
 
     ctx->key = mlkemkey;
     ctx->op = operation;
+    MLKEM_KEM_PRINTF("MLKEMKEM init OK\n");
     return 1;
 }
 
@@ -86,11 +108,13 @@ static int mlkem_set_ctx_params(void *vctx, const OSSL_PARAM params[])
 {
     PROV_MLKEM_CTX *ctx = (PROV_MLKEM_CTX *)vctx;
 
+    MLKEM_KEM_PRINTF2("MLKEMKEM set ctx params %p\n", ctx);
     if (ctx == NULL)
         return 0;
     if (params == NULL)
         return 1;
 
+    MLKEM_KEM_PRINTF("MLKEMKEM set ctx params OK\n");
     return 1;
 }
 
@@ -109,13 +133,16 @@ static int mlkem_encapsulate(void *vctx, unsigned char *out, size_t *outlen,
 {
     PROV_MLKEM_CTX *ctx = (PROV_MLKEM_CTX *)vctx;
 
+    MLKEM_KEM_PRINTF3("MLKEMKEM encaps %p to %p\n", ctx, out);
     if (outlen != NULL)
         *outlen = MLKEM768_CIPHERTEXTBYTES;
     if (secretlen != NULL)
         *secretlen = MLKEM768_SECRETKEYBYTES;
 
-    if (out == NULL)
+    if (out == NULL) {
+        MLKEM_KEM_PRINTF3("MLKEMKEM encaps outlens set to %d and %d\n", *outlen, *secretlen);
         return 1;
+    }
 
     if (ctx->key == NULL
             || ctx->key->keytype != MLKEM_KEY_TYPE_768
@@ -126,6 +153,7 @@ static int mlkem_encapsulate(void *vctx, unsigned char *out, size_t *outlen,
     if (!mlkem768_ref_enc((uint8_t *)out, (uint8_t *)secret, ctx->key->pubkey))
         return 0;
 
+    MLKEM_KEM_PRINTF("MLKEMKEM encaps OK\n");
     return 1;
 }
 
@@ -134,11 +162,15 @@ static int mlkem_decapsulate(void *vctx, unsigned char *out, size_t *outlen,
 {
     PROV_MLKEM_CTX *ctx = (PROV_MLKEM_CTX *)vctx;
 
+    MLKEM_KEM_PRINTF3("MLKEMKEM decaps %p to %p\n", ctx, out);
+    MLKEM_KEM_PRINTF2("MLKEMKEM decaps inlen at %d\n", inlen);
     if (outlen != NULL)
         *outlen = MLKEM768_SECRETKEYBYTES;
 
-    if (out == NULL)
+    if (out == NULL) {
+        MLKEM_KEM_PRINTF2("MLKEMKEM decaps outlen set to %d \n", *outlen);
         return 1;
+    }
 
     if (ctx->key == NULL
             || ctx->key->keytype != MLKEM_KEY_TYPE_768
@@ -152,6 +184,7 @@ static int mlkem_decapsulate(void *vctx, unsigned char *out, size_t *outlen,
     if (!mlkem768_ref_dec(out, in, ctx->key->seckey))
         return 0;
 
+    MLKEM_KEM_PRINTF("MLKEMKEM decaps OK\n");
     return 1;
 }
 
