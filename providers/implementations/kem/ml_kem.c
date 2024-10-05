@@ -137,7 +137,7 @@ static int mlkem_encapsulate(void *vctx, unsigned char *out, size_t *outlen,
     if (outlen != NULL)
         *outlen = MLKEM768_CIPHERTEXTBYTES;
     if (secretlen != NULL)
-        *secretlen = MLKEM768_SECRETKEYBYTES;
+        *secretlen = MLKEM768_BYTES;
 
     if (out == NULL) {
         MLKEM_KEM_PRINTF3("MLKEMKEM encaps outlens set to %d and %d\n", *outlen, *secretlen);
@@ -165,7 +165,7 @@ static int mlkem_decapsulate(void *vctx, unsigned char *out, size_t *outlen,
     MLKEM_KEM_PRINTF3("MLKEMKEM decaps %p to %p\n", ctx, out);
     MLKEM_KEM_PRINTF2("MLKEMKEM decaps inlen at %d\n", inlen);
     if (outlen != NULL)
-        *outlen = MLKEM768_SECRETKEYBYTES;
+        *outlen = MLKEM768_BYTES;
 
     if (out == NULL) {
         MLKEM_KEM_PRINTF2("MLKEMKEM decaps outlen set to %d \n", *outlen);
