@@ -24,21 +24,19 @@
 #include "prov/securitycheck.h"
 
 #ifdef NDEBUG
-#define MLKEM_KM_PRINTF(a)
-#define MLKEM_KM_PRINTF2(a, b)
-#define MLKEM_KM_PRINTF3(a, b, c)
+static void debug_print(char *fmt, ...) {}
 #else
-#define MLKEM_KM_PRINTF(a)                                                       \
-    if (getenv("MLKEMKM"))                                                       \
-    printf(a)
-#define MLKEM_KM_PRINTF2(a, b)                                                   \
-    if (getenv("MLKEMKM"))                                                       \
-    printf(a, b)
-#define MLKEM_KM_PRINTF3(a, b, c)                                                \
-    if (getenv("MLKEMKM"))                                                       \
-    printf(a, b, c)
-#endif // NDEBUG
+static void debug_print(char *fmt, ...)
+{
+    char out[1000];
 
+    va_list argptr;
+    va_start(argptr,fmt);
+    vsprintf(out, fmt, argptr);
+    va_end(argptr);
+    if (getenv("MLKEMKM")) printf("MLKEM_KM: %s",out);
+}
+#endif
 
 static OSSL_FUNC_keymgmt_new_fn mlkem_new;
 static OSSL_FUNC_keymgmt_free_fn mlkem_free;
@@ -70,14 +68,14 @@ struct mlkem_gen_ctx {
 static void *mlkem_new(void *provctx)
 {
     MLKEM_KEY* key = NULL;
-    MLKEM_KM_PRINTF("MLKEMKM new key req\n");
+    debug_print("new key req\n");
     if (!ossl_prov_is_running())
         return 0;
     key = OPENSSL_zalloc(sizeof(MLKEM_KEY));
     if (key == NULL)
         return 0;
     key->keytype = MLKEM_KEY_TYPE_768; /* TODO any type */
-    MLKEM_KM_PRINTF2("MLKEMKM new key = %p\n", key);
+    debug_print("new key = %p\n", key);
     return key;
 }
 
@@ -85,7 +83,7 @@ static void mlkem_free(void *vkey)
 {
     MLKEM_KEY *mkey = (MLKEM_KEY *)vkey;
 
-    MLKEM_KM_PRINTF2("MLKEMKM free key %p\n", mkey);
+    debug_print("free key %p\n", mkey);
     if (mkey == NULL)
         return;
     OPENSSL_free(mkey->pubkey);
@@ -98,7 +96,7 @@ static int mlkem_has(const void *keydata, int selection)
     const MLKEM_KEY *key = keydata;
     int ok = 0;
 
-    MLKEM_KM_PRINTF2("MLKEMKM has %p\n", key);
+    debug_print("has %p\n", key);
     if (ossl_prov_is_running() && key != NULL) {
         /*
          * ML-KEM keys always have all the parameters they need (i.e. none).
@@ -112,7 +110,7 @@ static int mlkem_has(const void *keydata, int selection)
         if ((selection & OSSL_KEYMGMT_SELECT_PRIVATE_KEY) != 0)
             ok = ok && key->seckey != NULL;
     }
-    MLKEM_KM_PRINTF2("MLKEMKM has result %d\n", ok);
+    debug_print("has result %d\n", ok);
     return ok;
 }
 
@@ -122,7 +120,7 @@ static int mlkem_match(const void *keydata1, const void *keydata2, int selection
     const MLKEM_KEY *key2 = keydata2;
     int ok = 1;
 
-    MLKEM_KM_PRINTF3("MLKEMKM matching %p and %p\n", key1, key2);
+    debug_print("matching %p and %p\n", key1, key2);
     if (!ossl_prov_is_running())
         return 0;
 
@@ -157,7 +155,7 @@ static int mlkem_match(const void *keydata1, const void *keydata2, int selection
         }
         ok = ok && key_checked;
     }
-    MLKEM_KM_PRINTF2("MLKEMKM match result %d\n", ok);
+    debug_print("match result %d\n", ok);
     return ok;
 }
 
@@ -195,7 +193,7 @@ static int mlkem_export(void *key, int selection, OSSL_CALLBACK *param_cb,
     OSSL_PARAM *params = NULL;
     int ret = 0;
 
-    MLKEM_KM_PRINTF2("MLKEMKM export %p\n", key);
+    debug_print("export %p\n", key);
     if (!ossl_prov_is_running() || key == NULL)
         return 0;
 
@@ -221,7 +219,7 @@ static int mlkem_export(void *key, int selection, OSSL_CALLBACK *param_cb,
     OSSL_PARAM_free(params);
 err:
     OSSL_PARAM_BLD_free(tmpl);
-    MLKEM_KM_PRINTF2("MLKEMKM export result %d\n", ret);
+    debug_print("export result %d\n", ret);
     return ret;
 }
 
@@ -295,7 +293,7 @@ static int mlkem_import(void *key, int selection, const OSSL_PARAM params[])
     int ok = 1;
     int include_private;
 
-    MLKEM_KM_PRINTF2("MLKEMKM import %p\n", mkey);
+    debug_print("import %p\n", mkey);
     if (!ossl_prov_is_running() || key == NULL)
         return 0;
 
@@ -305,7 +303,7 @@ static int mlkem_import(void *key, int selection, const OSSL_PARAM params[])
     include_private = selection & OSSL_KEYMGMT_SELECT_PRIVATE_KEY ? 1 : 0;
     ok = ok && ossl_mlkem_key_fromdata(mkey, params, include_private);
 
-    MLKEM_KM_PRINTF2("MLKEMKM import result %d\n", ok);
+    debug_print("import result %d\n", ok);
     return ok;
 }
 
@@ -320,7 +318,7 @@ static const OSSL_PARAM mlkem_key_types[] = {
 
 static const OSSL_PARAM *mlkem_imexport_types(int selection)
 {
-    MLKEM_KM_PRINTF("MLKEMKM getting imexport types\n");
+    debug_print("getting imexport types\n");
     if ((selection & OSSL_KEYMGMT_SELECT_KEYPAIR) != 0)
         return mlkem_key_types;
     return NULL;
@@ -331,7 +329,7 @@ static int mlkem_get_params(void *key, OSSL_PARAM params[])
     MLKEM_KEY *mkey = key;
     OSSL_PARAM *p;
 
-    MLKEM_KM_PRINTF2("MLKEMKM get params %p\n", mkey);
+    debug_print("get params %p\n", mkey);
     if ((p = OSSL_PARAM_locate(params, OSSL_PKEY_PARAM_BITS)) != NULL
         && !OSSL_PARAM_set_int(p, MLKEM768_SECRETKEYBYTES * 8))
         return 0;
@@ -346,7 +344,7 @@ static int mlkem_get_params(void *key, OSSL_PARAM params[])
             return 0;
     }
 
-    MLKEM_KM_PRINTF("MLKEMKM get params OK\n");
+    debug_print("get params OK\n");
     return 1;
 }
 
@@ -360,7 +358,7 @@ static const OSSL_PARAM mlkem_gettable_params_arr[] = {
 
 static const OSSL_PARAM *mlkem_gettable_params(void *provctx)
 {
-    MLKEM_KM_PRINTF("MLKEMKM gettable params called\n");
+    debug_print("gettable params called\n");
     return mlkem_gettable_params_arr;
 }
 
@@ -369,7 +367,7 @@ static int mlkem_set_params(void *key, const OSSL_PARAM params[])
     MLKEM_KEY *mkey = key;
     const OSSL_PARAM *p;
 
-    MLKEM_KM_PRINTF2("MLKEMKM set params called for %p\n", mkey);
+    debug_print("set params called for %p\n", mkey);
     if (params == NULL)
         return 1;
 
@@ -392,7 +390,7 @@ static int mlkem_set_params(void *key, const OSSL_PARAM params[])
         mkey->seckey = NULL;
     }
 
-    MLKEM_KM_PRINTF("MLKEMKM set params OK\n");
+    debug_print("set params OK\n");
     return 1;
 }
 
@@ -403,7 +401,7 @@ static const OSSL_PARAM mlkem_settable_params_arr[] = {
 
 static const OSSL_PARAM *mlkem_settable_params(void *provctx)
 {
-    MLKEM_KM_PRINTF("MLKEMKM settable params called\n");
+    debug_print("settable params called\n");
     return mlkem_settable_params_arr;
 }
 
@@ -412,7 +410,7 @@ static void *mlkem_gen_init(void *provctx, int selection,
 {
     struct mlkem_gen_ctx *gctx = NULL;
 
-    MLKEM_KM_PRINTF2("MLKEMKM gen init called for %p\n", provctx);
+    debug_print("gen init called for %p\n", provctx);
     if (!ossl_prov_is_running())
         return NULL;
 
@@ -424,7 +422,7 @@ static void *mlkem_gen_init(void *provctx, int selection,
         OPENSSL_free(gctx);
         gctx = NULL;
     }
-    MLKEM_KM_PRINTF2("MLKEMKM gen init returns %p\n", gctx);
+    debug_print("gen init returns %p\n", gctx);
     return gctx;
 }
 
@@ -435,7 +433,7 @@ static int mlkem_gen_set_params(void *genctx, const OSSL_PARAM params[])
     if (gctx == NULL)
         return 0;
 
-    MLKEM_KM_PRINTF2("MLKEMKM empty gen_set params called for %p\n", gctx);
+    debug_print("empty gen_set params called for %p\n", gctx);
     return 1;
 }
 
@@ -453,7 +451,7 @@ static void *mlkem_gen(void *vctx, OSSL_CALLBACK *osslcb, void *cbarg)
     struct mlkem_gen_ctx *gctx = (struct mlkem_gen_ctx *)vctx;
     MLKEM_KEY *mkey;
 
-    MLKEM_KM_PRINTF2("MLKEMKM gen called for %p\n", gctx);
+    debug_print("gen called for %p\n", gctx);
     if (gctx == NULL)
         return NULL;
 
@@ -464,7 +462,7 @@ static void *mlkem_gen(void *vctx, OSSL_CALLBACK *osslcb, void *cbarg)
 
     /* If we're doing parameter generation then we just return a blank key */
     if ((gctx->selection & OSSL_KEYMGMT_SELECT_KEYPAIR) == 0) {
-        MLKEM_KM_PRINTF2("MLKEMKM gen returns blank %p\n", mkey);
+        debug_print("gen returns blank %p\n", mkey);
         return mkey;
     }
 
@@ -477,11 +475,11 @@ static void *mlkem_gen(void *vctx, OSSL_CALLBACK *osslcb, void *cbarg)
     if (!mlkem768_ref_keypair(mkey->pubkey, mkey->seckey))
         goto err;
 
-    MLKEM_KM_PRINTF2("MLKEMKM gen returns set %p\n", mkey);
+    debug_print("gen returns set %p\n", mkey);
     return mkey;
 err:
     mlkem_free(mkey);
-    MLKEM_KM_PRINTF("MLKEMKM gen returns NULL\n");
+    debug_print("gen returns NULL\n");
     return NULL;
 }
 
@@ -489,7 +487,7 @@ static void mlkem_gen_cleanup(void *genctx)
 {
     struct mlkem_gen_ctx *gctx = genctx;
 
-    MLKEM_KM_PRINTF2("MLKEMKM gen cleanup for %p\n", gctx);
+    debug_print("gen cleanup for %p\n", gctx);
     OPENSSL_free(gctx);
 }
 
@@ -498,7 +496,7 @@ static void *mlkem_dup(const void *vsrckey, int selection)
     const MLKEM_KEY *srckey = (const MLKEM_KEY *)vsrckey;
     MLKEM_KEY *dstkey;
 
-    MLKEM_KM_PRINTF2("MLKEMKM dup called for %p\n", srckey);
+    debug_print("dup called for %p\n", srckey);
     if (!ossl_prov_is_running())
         return NULL;
 
@@ -522,11 +520,11 @@ static void *mlkem_dup(const void *vsrckey, int selection)
         }
     }
 
-    MLKEM_KM_PRINTF2("MLKEMKM dup returns %p\n", dstkey);
+    debug_print("dup returns %p\n", dstkey);
     return dstkey;
  err:
     mlkem_free(dstkey);
-    MLKEM_KM_PRINTF("MLKEMKM dup returns NULL\n");
+    debug_print("dup returns NULL\n");
     return NULL;
 }
 
