@@ -14,12 +14,27 @@
 
 # include <stdint.h>
 # include <openssl/e_os2.h>
+# include <crypto/evp.h>
 
 # if defined(__cplusplus)
 extern "C" {
 # endif
 
 # ifndef OPENSSL_NO_MLKEM
+
+    typedef struct ossl_mlkem_ctx {
+        EVP_MD *shake128_cache;
+        EVP_MD *shake256_cache;
+        EVP_MD *sha3_256_cache;
+        EVP_MD *sha3_512_cache;
+        OSSL_LIB_CTX *libctx;
+        char *properties;
+    } ossl_mlkem_ctx;
+
+    /* General ctx functions */
+    ossl_mlkem_ctx *ossl_mlkem_newctx(OSSL_LIB_CTX *libctx, const char *properties);
+
+    void ossl_mlkem_ctx_free(ossl_mlkem_ctx *ctx);
 
     /*
      * TODO: Change void APIs to error-returning APIs,
@@ -32,8 +47,6 @@ extern "C" {
      * This implements the Module-Lattice-Based Key-Encapsulation Mechanism from
      * https://csrc.nist.gov/pubs/fips/203/final
      */
-
-    /* TODO Some style checks fail here; see https://github.com/openssl/private/issues/699 */
 
     /*
      * ossl_mlkem768_public_key contains an ML-KEM-768 public key. The contents of this
@@ -92,7 +105,8 @@ extern "C" {
      */
     int ossl_mlkem768_generate_key(uint8_t *out_encoded_public_key,
                                    uint8_t *optional_out_seed,
-                                   struct ossl_mlkem768_private_key *out_private_key);
+                                   struct ossl_mlkem768_private_key *out_private_key,
+                                   ossl_mlkem_ctx *mlkem_ctx);
 
     /*
      * ossl_mlkem768_private_key_from_seed derives a private key from a seed that was
@@ -101,7 +115,8 @@ extern "C" {
      */
     int ossl_mlkem768_private_key_from_seed(ossl_mlkem768_private_key *out_private_key,
                                             const uint8_t *seed,
-                                            size_t seed_len);
+                                            size_t seed_len,
+                                            ossl_mlkem_ctx *mlkem_ctx);
 
     /*
      * ossl_mlkem768_public_from_private sets |*out_public_key| to the public key that
@@ -130,7 +145,8 @@ extern "C" {
      */
     int ossl_mlkem768_encap(uint8_t *out_ciphertext,
                             uint8_t *out_shared_secret,
-                            const ossl_mlkem768_public_key *public_key);
+                            const ossl_mlkem768_public_key *public_key,
+                            ossl_mlkem_ctx *mlkem_ctx);
 
     /*
      * ossl_mlkem768_decap decrypts a shared secret from |ciphertext| using |private_key|
@@ -146,7 +162,8 @@ extern "C" {
      */
     int ossl_mlkem768_decap(uint8_t *out_shared_secret,
                             const uint8_t *ciphertext, size_t ciphertext_len,
-                            const ossl_mlkem768_private_key *private_key);
+                            const ossl_mlkem768_private_key *private_key,
+                            ossl_mlkem_ctx *mlkem_ctx);
 
     /*
      * ossl_mlkem768_recreate_public_key recreates a fully formed ossl_mlkem768_public_key
@@ -155,7 +172,8 @@ extern "C" {
      * sizeof(ossl_mlkem768_public_key)
      */
     int ossl_mlkem768_recreate_public_key(const uint8_t *encoded_public_key,
-                                          ossl_mlkem768_public_key *pub);
+                                          ossl_mlkem768_public_key *pub,
+                                          ossl_mlkem_ctx *mlkem_ctx);
 
 # endif /* OPENSSL_NO_MLKEM */
 

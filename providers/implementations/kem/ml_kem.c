@@ -61,6 +61,7 @@ static void *mlkem_newctx(void *provctx)
     debug_print("MLKEMKEM newctx called\n");
     if (ctx == NULL)
         return NULL;
+
     ctx->libctx = PROV_LIBCTX_OF(provctx);
 
     debug_print("MLKEMKEM newctx returns %p\n", ctx);
@@ -152,7 +153,7 @@ static int mlkem_encapsulate(void *vctx, unsigned char *out, size_t *outlen,
             || secret == NULL)
         return 0;
 
-    ossl_mlkem768_encap(out, (uint8_t *)secret, &ctx->key->pubkey);
+    ossl_mlkem768_encap(out, (uint8_t *)secret, &ctx->key->pubkey, ctx->key->mlkem_ctx);
 
     debug_print("MLKEMKEM encaps OK\n");
     return 1;
@@ -182,7 +183,8 @@ static int mlkem_decapsulate(void *vctx, unsigned char *out, size_t *outlen,
     if (inlen != OSSL_MLKEM768_CIPHERTEXT_BYTES)
         return 0;
 
-    ossl_mlkem768_decap((uint8_t *)out, (uint8_t *)in, inlen, &ctx->key->seckey);
+    ossl_mlkem768_decap((uint8_t *)out, (uint8_t *)in, inlen, &ctx->key->seckey,
+                        ctx->key->mlkem_ctx);
 
     debug_print("MLKEMKEM decaps OK\n");
     return 1;
