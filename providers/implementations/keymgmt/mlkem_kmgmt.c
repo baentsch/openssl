@@ -100,8 +100,8 @@ static void *mlkem_new(void *provctx)
         key->provctx = provctx;
         /*
          * ideally, this is a one-time allocation and ctx that should be within the
-         * provider context: OK to move it there?? It would be the first algorithm-
-         * specific context stored: Feels weird (TODO(ML-KEM)).
+         * provider context: OK to move it there to improve performance?? It would be
+         * the first algorithmspecific context stored: Feels weird (TODO(ML-KEM)).
          */
         key->mlkem_ctx = ossl_mlkem_newctx(provctx == NULL ? NULL : PROV_LIBCTX_OF(provctx), NULL);
         if (key->mlkem_ctx == NULL) {
