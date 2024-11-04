@@ -23,14 +23,6 @@
 # include <stdio.h>
 #endif
 
-/*
- * Set/unset to test performance impact of cached SHA3 EVP_MD instances
- * Impact on x64: everything about 8% slower if un-set
- * TODO(ML-KEM): Remove define if satisfied with approach (API impact)
- * removal will also fix style-related problem
- */
-#define USE_SHA3_CACHE 1
-
 #ifndef OPENSSL_NO_MLKEM
 
 /* Constants that are common across all sizes. */
@@ -171,23 +163,6 @@ void ossl_mlkem_ctx_free(ossl_mlkem_ctx *ctx)
 }
 
 /*
- * TODO(ML-KEM): ctx validation: Is this over the top checking an input
- * construction of which has been checked before? But a malign user
- * could cause problems changing the struct before passing it back
- * Problem: This costs a discernible level of performance (~3%)
- */
-static int validate_mlkem_ctx(ossl_mlkem_ctx *ctx)
-{
-    if (ctx == NULL
-        || ctx->shake128_cache == NULL
-        || ctx->shake256_cache == NULL
-        || ctx->sha3_256_cache == NULL
-        || ctx->sha3_512_cache == NULL)
-        return 0;
-
-    return 1;
-}
-/*
  * single_keccak hashes |in_len| bytes from |in| and writes |out_len| bytes
  * of output to |out|. If the |md| specifies a fixed-output function, like
  * SHA3-256, then |out_len| must be the correct length for that function.
@@ -242,11 +217,7 @@ static void print_hex(const uint8_t *data, int len, const char *msg)
 static void prf(uint8_t *out, size_t out_len, const uint8_t in[33],
                 ossl_mlkem_ctx *mlkem_ctx)
 {
-# ifdef USE_SHA3_CACHE
     single_keccak(out, out_len, in, 33, mlkem_ctx->shake256_cache);
-# else
-    single_keccak(out, out_len, in, 33, EVP_MD_fetch(NULL, "SHAKE256", NULL));
-# endif
 }
 
 /*
@@ -256,22 +227,14 @@ static void prf(uint8_t *out, size_t out_len, const uint8_t in[33],
 static void hash_h(uint8_t *out, const uint8_t *in, size_t len,
                    ossl_mlkem_ctx *mlkem_ctx)
 {
-# ifdef USE_SHA3_CACHE
     single_keccak(out, 32, in, len, mlkem_ctx->sha3_256_cache);
-# else
-    single_keccak(out, 32, in, len, EVP_MD_fetch(NULL, "SHA3-256", NULL));
-# endif
 }
 
 /* uint8_t out[64] */
 static void hash_g(uint8_t *out, const uint8_t *in, size_t len,
                    ossl_mlkem_ctx *mlkem_ctx)
 {
-# ifdef USE_SHA3_CACHE
     single_keccak(out, 64, in, len, mlkem_ctx->sha3_512_cache);
-# else
-    single_keccak(out, 64, in, len, EVP_MD_fetch(NULL, "SHA3-512", NULL));
-# endif
 }
 
 /*
@@ -289,11 +252,7 @@ static int kdf(uint8_t *out,
 
     mdctx = EVP_MD_CTX_new();
     if (mdctx == NULL
-# ifdef USE_SHA3_CACHE
         || !EVP_DigestInit_ex(mdctx, mlkem_ctx->shake256_cache, NULL)
-# else
-        || !EVP_DigestInit_ex(mdctx, EVP_MD_fetch(NULL, "SHAKE256", NULL), NULL)
-# endif
         || !EVP_DigestUpdate(mdctx, failure_secret, 32)
         || !EVP_DigestUpdate(mdctx, ciphertext, ciphertext_len)
         || !EVP_DigestFinalXOF(mdctx, out, OSSL_MLKEM768_SHARED_SECRET_BYTES))
@@ -685,11 +644,7 @@ static int matrix_expand(matrix *out, const uint8_t rho[32],
         for (j = 0; j < RANK768; j++) {
             input[32] = i;
             input[33] = j;
-# ifdef USE_SHA3_CACHE
             if (!EVP_DigestInit_ex(mdctx, mlkem_ctx->shake128_cache, NULL)
-# else
-            if (!EVP_DigestInit_ex(mdctx, EVP_MD_fetch(NULL, "SHAKE128", NULL), NULL)
-# endif
                 || !EVP_DigestUpdate(mdctx, input, sizeof(input))
                 || !scalar_from_keccak_vartime(&out->v[i][j], mdctx))
                 goto end;
@@ -974,7 +929,7 @@ static int mlkem_generate_key_external_seed(uint8_t *out_encoded_public_key,
     uint8_t counter = 0;
     vector error;
 
-    if (!validate_mlkem_ctx(mlkem_ctx))
+    if (mlkem_ctx == NULL)
         return 0;
 
     memcpy(augmented_seed, seed, 32);
@@ -1136,7 +1091,7 @@ int ossl_mlkem768_encap(uint8_t *out_ciphertext,
 {
     uint8_t entropy[MLKEM_ENCAP_ENTROPY];
 
-    if (!validate_mlkem_ctx(mlkem_ctx))
+    if (mlkem_ctx == NULL)
         return 0;
 
     RAND_bytes(entropy, MLKEM_ENCAP_ENTROPY);
@@ -1183,7 +1138,7 @@ static int mlkem_decap(uint8_t *out_shared_secret,
     uint8_t mask;
     int i;
 
-    if (!validate_mlkem_ctx(mlkem_ctx))
+    if (mlkem_ctx == NULL)
         return 0;
 
     print_hex((uint8_t *)&priv->pub, sizeof(ossl_mlkem768_public_key), "PK1");
