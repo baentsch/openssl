@@ -12,7 +12,6 @@
 #include <openssl/params.h>
 #include <openssl/err.h>
 #include <openssl/proverr.h>
-#include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <openssl/self_test.h>
 #include "internal/param_build_set.h"
@@ -94,10 +93,23 @@ static void *mlkem_new(void *provctx)
     debug_print("MLKEMKM new key req\n");
     if (!ossl_prov_is_running())
         return 0;
+
     key = OPENSSL_zalloc(sizeof(MLKEM768_KEY));
-    if (key == NULL)
-        return 0;
-    key->keytype = MLKEM_KEY_TYPE_768; /* TODO(ML-KEM) any type */
+    if (key != NULL) {
+        key->keytype = MLKEM_KEY_TYPE_768; /* TODO(ML-KEM) any type */
+        key->provctx = provctx;
+        /*
+         * ideally, this is a one-time allocation and ctx that should be within the
+         * provider context: OK to move it there?? It would be the first algorithm-
+         * specific context stored: Feels weird (TODO(ML-KEM)).
+         */
+        key->mlkem_ctx = ossl_mlkem_newctx(provctx == NULL ? NULL : PROV_LIBCTX_OF(provctx), NULL);
+        if (key->mlkem_ctx == NULL) {
+            OPENSSL_free(key);
+            key = NULL;
+        }
+    }
+
     debug_print("MLKEMKM new key = %p\n", key);
     return key;
 }
@@ -109,6 +121,7 @@ static void mlkem_free(void *vkey)
     debug_print("MLKEMKM free key %p\n", mkey);
     if (mkey == NULL)
         return;
+    ossl_mlkem_ctx_free(mkey->mlkem_ctx);
     OPENSSL_free(mkey->encoded_pubkey);
     OPENSSL_free(mkey);
 }
@@ -408,7 +421,8 @@ static int mlkem_set_params(void *key, const OSSL_PARAM params[])
                                                 &len_stored))
             return 0;
         debug_print("encoded pub key successfully stored with %ld bytes\n", len_stored);
-        ossl_mlkem768_recreate_public_key(mkey->encoded_pubkey, &mkey->pubkey);
+        ossl_mlkem768_recreate_public_key(mkey->encoded_pubkey, &mkey->pubkey,
+                                          mkey->mlkem_ctx);
         mkey->pubkey_initialized = 1;
     }
 
@@ -477,7 +491,7 @@ static void *mlkem_gen(void *vctx, OSSL_CALLBACK *osslcb, void *cbarg)
     if (gctx == NULL)
         return NULL;
 
-    if ((mkey = mlkem_new(NULL)) == NULL) {
+    if ((mkey = mlkem_new(gctx->provctx)) == NULL) {
         ERR_raise(ERR_LIB_PROV, ERR_R_INTERNAL_ERROR);
         return NULL;
     }
@@ -498,7 +512,8 @@ static void *mlkem_gen(void *vctx, OSSL_CALLBACK *osslcb, void *cbarg)
         }
     }
 
-    ossl_mlkem768_generate_key(mkey->encoded_pubkey, NULL, &mkey->seckey);
+    ossl_mlkem768_generate_key(mkey->encoded_pubkey, NULL, &mkey->seckey,
+                               mkey->mlkem_ctx);
     mkey->seckey_initialized = 1;
     ossl_mlkem768_public_from_private(&mkey->pubkey, &mkey->seckey);
     mkey->pubkey_initialized = 1;
@@ -524,7 +539,7 @@ static void *mlkem_dup(const void *vsrckey, int selection)
     if (!ossl_prov_is_running())
         return NULL;
 
-    dstkey = mlkem_new(NULL);
+    dstkey = mlkem_new(srckey->provctx);
     if (dstkey == NULL)
         return NULL;
 

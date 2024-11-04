@@ -27,6 +27,8 @@ typedef struct mlkem768_key_st {
     uint8_t *encoded_pubkey;
     int pubkey_initialized;
     int seckey_initialized;
+    ossl_mlkem_ctx *mlkem_ctx;
+    void *provctx;
 } MLKEM768_KEY;
 
 # endif /* OPENSSL_NO_MLKEM */
