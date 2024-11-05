@@ -37,11 +37,6 @@ extern "C" {
     void ossl_mlkem_ctx_free(ossl_mlkem_ctx *ctx);
 
     /*
-     * TODO: Change void APIs to error-returning APIs,
-     * see https://github.com/openssl/private/issues/701
-     */
-
-    /*
      * ML-KEM-768.
      *
      * This implements the Module-Lattice-Based Key-Encapsulation Mechanism from
@@ -124,8 +119,8 @@ extern "C" {
      * |ossl_mlkem768_generate_key| if, for some reason, you need to encapsulate to a key
      * that was just generated.)
      */
-    void ossl_mlkem768_public_from_private(ossl_mlkem768_public_key *out_public_key,
-                                           const ossl_mlkem768_private_key *private_key);
+    int ossl_mlkem768_public_from_private(ossl_mlkem768_public_key *out_public_key,
+                                          const ossl_mlkem768_private_key *private_key);
 
   /* ossl_mlkem1024_CIPHERTEXT_BYTES is number of bytes in the ML-KEM-1024 ciphertext. */
 #  define OSSL_MLKEM1024_CIPHERTEXT_BYTES 1568

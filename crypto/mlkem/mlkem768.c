@@ -47,13 +47,13 @@ static const int kDV768 = 4;
 static const int kDU1024 = 11;
 static const int kDV1024 = 5;
 
-static size_t compressed_vector_size(int rank)
+static ossl_inline size_t compressed_vector_size(int rank)
 {
     return (rank == RANK768 ? kDU768 : kDU1024) * (size_t)rank *
         DEGREE / 8;
 }
 
-static size_t ciphertext_size(int rank)
+static ossl_inline size_t ciphertext_size(int rank)
 {
     return compressed_vector_size(rank) +
         (rank == RANK768 ? kDV768 : kDV1024) * DEGREE / 8;
@@ -89,12 +89,12 @@ typedef struct private_key_RANK768
     uint8_t fo_failure_secret[32];
 } private_key_RANK768;
 
-static size_t encoded_vector_size(int rank)
+static ossl_inline size_t encoded_vector_size(int rank)
 {
     return (kLog2Prime * DEGREE / 8) * (size_t)rank;
 }
 
-static size_t encoded_public_key_size(int rank)
+static ossl_inline size_t encoded_public_key_size(int rank)
 {
     return encoded_vector_size(rank) + /* sizeof(rho)= */ 32;
 }
@@ -189,19 +189,13 @@ static int single_keccak(uint8_t *out, size_t out_len,
     return ret;
 }
 
+/* TODO(ML-KEM) revisit utility of this function/remove eventually */
 static void print_hex(const uint8_t *data, int len, const char *msg)
 {
 # ifndef NDEBUG
-    int i;
-
     if (msg)
         printf("%s: \n", msg);
-    for (i = 0; i < len; i++) {
-        if (i % 32 == 0)
-            printf("\n");
-        printf("%02x ", data[i]);
-    }
-    printf("\n\n");
+    BIO_dump_fp(stdout, data, len);
     fflush(0);
 # endif
 }
@@ -970,12 +964,18 @@ int ossl_mlkem768_generate_key(uint8_t *out_encoded_public_key,
 {
     uint8_t seed[MLKEM_SEED_BYTES];
 
-    RAND_bytes(seed, sizeof(seed));
-    if (optional_out_seed)
-        memcpy(optional_out_seed, seed, sizeof(seed));
-    return ossl_mlkem768_generate_key_external_seed(out_encoded_public_key,
-                                                    out_private_key,
-                                                    seed, mlkem_ctx);
+    if (mlkem_ctx == NULL)
+        return 0;
+
+    /* TODO(ML-KEM): Review requested randomness strength */
+    if (RAND_bytes_ex(mlkem_ctx->libctx, seed, sizeof(seed), 256) == 1) {
+        if (optional_out_seed)
+            memcpy(optional_out_seed, seed, sizeof(seed));
+        return ossl_mlkem768_generate_key_external_seed(out_encoded_public_key,
+                                                        out_private_key,
+                                                        seed, mlkem_ctx);
+    }
+    return 0;
 }
 
 int ossl_mlkem768_private_key_from_seed(ossl_mlkem768_private_key *out_private_key,
@@ -991,14 +991,17 @@ int ossl_mlkem768_private_key_from_seed(ossl_mlkem768_private_key *out_private_k
     return 1;
 }
 
-void ossl_mlkem768_public_from_private(ossl_mlkem768_public_key *out_public_key,
-                                       const ossl_mlkem768_private_key *private_key)
+int ossl_mlkem768_public_from_private(ossl_mlkem768_public_key *out_public_key,
+                                      const ossl_mlkem768_private_key *private_key)
 {
     struct public_key_RANK768 *const pub = public_key_768_from_external(out_public_key);
     const struct private_key_RANK768 *const priv =
         private_key_768_from_external(private_key);
 
+    if (priv == NULL)
+        return 0;
     *pub = priv->pub;
+    return 1;
 }
 
 /*
@@ -1094,7 +1097,9 @@ int ossl_mlkem768_encap(uint8_t *out_ciphertext,
     if (mlkem_ctx == NULL)
         return 0;
 
-    RAND_bytes(entropy, MLKEM_ENCAP_ENTROPY);
+    /* TODO(ML-KEM): Review requested randomness strength */
+    if (RAND_bytes_ex(mlkem_ctx->libctx, entropy, MLKEM_ENCAP_ENTROPY, 256) != 1)
+        return 0;
     ossl_mlkem768_encap_external_entropy(out_ciphertext, out_shared_secret, public_key,
                                          entropy, mlkem_ctx);
     print_hex((uint8_t *)public_key, sizeof(ossl_mlkem768_public_key), "PK");
@@ -1132,14 +1137,11 @@ static int mlkem_decap(uint8_t *out_shared_secret,
     uint8_t decrypted[64];
     uint8_t key_and_randomness[64];
     size_t ciphertext_len = ciphertext_size(RANK768);
-    /* TBC: Maximum also applicable for other algs? */
+    /* TODO(ML-KEM): Maximum also applicable for other algs? */
     uint8_t expected_ciphertext[OSSL_MLKEM1024_CIPHERTEXT_BYTES];
     uint8_t failure_key[32];
     uint8_t mask;
     int i;
-
-    if (mlkem_ctx == NULL)
-        return 0;
 
     print_hex((uint8_t *)&priv->pub, sizeof(ossl_mlkem768_public_key), "PK1");
     print_hex(ciphertext, OSSL_MLKEM768_CIPHERTEXT_BYTES, "CT");
@@ -1168,8 +1170,13 @@ int ossl_mlkem768_decap(uint8_t *out_shared_secret,
 {
     const struct private_key_RANK768 *priv;
 
+    if (mlkem_ctx == NULL)
+        return 0;
+
     if (ciphertext_len != OSSL_MLKEM768_CIPHERTEXT_BYTES) {
-        RAND_bytes(out_shared_secret, OSSL_MLKEM768_SHARED_SECRET_BYTES);
+        /* TODO(ML-KEM): Review requested randomness strength */
+        RAND_bytes_ex(mlkem_ctx->libctx, out_shared_secret,
+                      OSSL_MLKEM768_SHARED_SECRET_BYTES, 256);
         return 0;
     }
     priv = private_key_768_from_external(private_key);

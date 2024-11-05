@@ -135,6 +135,7 @@ static int mlkem_encapsulate(void *vctx, unsigned char *out, size_t *outlen,
                              unsigned char *secret, size_t *secretlen)
 {
     PROV_MLKEM_CTX *ctx = (PROV_MLKEM_CTX *)vctx;
+    int ret;
 
     debug_print("MLKEMKEM encaps %p to %p\n", ctx, out);
     if (outlen != NULL)
@@ -153,16 +154,17 @@ static int mlkem_encapsulate(void *vctx, unsigned char *out, size_t *outlen,
             || secret == NULL)
         return 0;
 
-    ossl_mlkem768_encap(out, (uint8_t *)secret, &ctx->key->pubkey, ctx->key->mlkem_ctx);
+    ret = ossl_mlkem768_encap(out, (uint8_t *)secret, &ctx->key->pubkey, ctx->key->mlkem_ctx);
 
-    debug_print("MLKEMKEM encaps OK\n");
-    return 1;
+    debug_print("MLKEMKEM encaps returns %d\n", ret);
+    return ret;
 }
 
 static int mlkem_decapsulate(void *vctx, unsigned char *out, size_t *outlen,
                              const unsigned char *in, size_t inlen)
 {
     PROV_MLKEM_CTX *ctx = (PROV_MLKEM_CTX *)vctx;
+    int ret;
 
     debug_print("MLKEMKEM decaps %p to %p\n", ctx, out);
     debug_print("MLKEMKEM decaps inlen at %ld\n", inlen);
@@ -183,11 +185,11 @@ static int mlkem_decapsulate(void *vctx, unsigned char *out, size_t *outlen,
     if (inlen != OSSL_MLKEM768_CIPHERTEXT_BYTES)
         return 0;
 
-    ossl_mlkem768_decap((uint8_t *)out, (uint8_t *)in, inlen, &ctx->key->seckey,
-                        ctx->key->mlkem_ctx);
+    ret = ossl_mlkem768_decap((uint8_t *)out, (uint8_t *)in, inlen, &ctx->key->seckey,
+                              ctx->key->mlkem_ctx);
 
-    debug_print("MLKEMKEM decaps OK\n");
-    return 1;
+    debug_print("MLKEMKEM decaps returns %d\n", ret);
+    return ret;
 }
 
 const OSSL_DISPATCH ossl_mlkem768_asym_kem_functions[] = {

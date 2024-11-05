@@ -45,15 +45,9 @@ static void debug_print(char *fmt, ...)
 static void print_hex(const uint8_t *data, int len, const char *msg)
 {
 #ifndef NDEBUG
-    int i;
-
     if (msg)
         printf("%s: \n", msg);
-    for (i = 0; i < len; i++) {
-        if (i % 32 == 0)
-            printf("\n");
-        printf("%02x ", data[i]);
-    }
+    BIO_dump_fp(stdout, data, len);
     printf("\n\n");
 #endif
 }
@@ -162,9 +156,10 @@ static int mlkem_match(const void *keydata1, const void *keydata2, int selection
     if ((selection & OSSL_KEYMGMT_SELECT_DOMAIN_PARAMETERS) != 0)
         ok = ok && key1->keytype == key2->keytype;
 
+    /* TODO(ML-KEM) */
     debug_print("MLKEMKM matching for now NOT YET IMPLEMENTED\n");
 
-/* template code to be completed as and when needed: */
+/* TODO(ML-KEM) template code to be completed as and when needed: */
 #ifdef UNDEF
     if ((selection & OSSL_KEYMGMT_SELECT_KEYPAIR) != 0) {
         int key_checked = 0;
@@ -199,7 +194,7 @@ static int mlkem_match(const void *keydata1, const void *keydata2, int selection
     return ok;
 }
 
-/* TBD as and when encode/decode becomes needed/standardized */
+/* TODO(ML-KEM) as and when encode/decode becomes needed/standardized */
 #ifdef UNDEF
 static int key_to_params(MLKEM768_KEY *key, OSSL_PARAM_BLD *tmpl,
                          OSSL_PARAM params[], int include_private)
@@ -549,8 +544,8 @@ static void *mlkem_dup(const void *vsrckey, int selection)
         /* TODO(ML-KEM)/TBC: By commenting out these, the EVP level test still passes: WHY?? */
         memcpy((void *)&dstkey->pubkey, (void *)&srckey->pubkey, sizeof(srckey->pubkey));
         dstkey->encoded_pubkey = OPENSSL_malloc(OSSL_MLKEM768_PUBLIC_KEY_BYTES);
-        assert(srckey->encoded_pubkey != NULL);
-        memcpy(dstkey->encoded_pubkey, srckey->encoded_pubkey, OSSL_MLKEM768_PUBLIC_KEY_BYTES);
+        if (srckey->encoded_pubkey != NULL)
+            memcpy(dstkey->encoded_pubkey, srckey->encoded_pubkey, OSSL_MLKEM768_PUBLIC_KEY_BYTES);
         dstkey->pubkey_initialized = 1;
     }
     if (srckey->seckey_initialized == 1
@@ -580,7 +575,7 @@ const OSSL_DISPATCH ossl_mlkem768_keymgmt_functions[] = {
     { OSSL_FUNC_KEYMGMT_GEN_CLEANUP, (void (*)(void))mlkem_gen_cleanup },
     { OSSL_FUNC_KEYMGMT_DUP, (void (*)(void))mlkem_dup },
     /*
-     * don't do for now, see https://github.com/openssl/private/issues/698
+     * TODO(ML-KEM) don't do for now, see https://github.com/openssl/private/issues/698
      *  { OSSL_FUNC_KEYMGMT_IMPORT_TYPES, (void (*)(void))mlkem_imexport_types },
      *  { OSSL_FUNC_KEYMGMT_EXPORT_TYPES, (void (*)(void))mlkem_imexport_types },
      *  { OSSL_FUNC_KEYMGMT_IMPORT, (void (*)(void))mlkem_export },

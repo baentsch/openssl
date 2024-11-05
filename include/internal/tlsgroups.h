@@ -57,7 +57,7 @@
 # define OSSL_TLS_GROUP_ID_ffdhe6144        0x0103
 # define OSSL_TLS_GROUP_ID_ffdhe8192        0x0104
  /*
-  * TODO(ML-KEM): Update to 262 as per IANA
+  * TODO(ML-KEM): Update to 513 as per IANA
   * https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8
   * Not done yet to not break interop testing with OQS test server; change when that
   * gets updated in line with whatever IANA eventually defines

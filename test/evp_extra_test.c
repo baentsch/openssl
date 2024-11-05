@@ -5922,7 +5922,7 @@ static int test_ml_kem(void)
     size_t wrpkeylen, agenkeylen, bgenkeylen, i;
 
     /* Generate Alice's key */
-    akey = EVP_PKEY_Q_keygen(testctx, NULL, "MLKEM-768");
+    akey = EVP_PKEY_Q_keygen(testctx, NULL, "ML-KEM-768");
     if (!TEST_ptr(akey))
         goto err;
 
