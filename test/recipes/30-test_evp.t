@@ -130,6 +130,9 @@ my @defltfiles = qw(
                      evppkey_kdf_scrypt.txt
                      evppkey_kdf_tls1_prf.txt
                      evppkey_rsa.txt
+                     evppkey_mlkem768_keygen.txt
+                     evppkey_mlkem768_encap.txt
+                     evppkey_mlkem768_decap.txt
                     );
 push @defltfiles, qw(evppkey_brainpool.txt) unless $no_ec;
 push @defltfiles, qw(evppkey_ecdsa_rfc6979.txt) unless $no_ec;
