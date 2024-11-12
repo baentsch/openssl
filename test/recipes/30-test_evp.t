@@ -31,6 +31,7 @@ my $no_ec2m = disabled("ec2m");
 my $no_sm2 = disabled("sm2");
 my $no_siv = disabled("siv");
 my $no_argon2 = disabled("argon2");
+my $no_mlkem = disabled("mlkem");
 
 # Default config depends on if the legacy module is built or not
 my $defaultcnf = $no_legacy ? 'default.cnf' : 'default-and-legacy.cnf';
@@ -130,9 +131,6 @@ my @defltfiles = qw(
                      evppkey_kdf_scrypt.txt
                      evppkey_kdf_tls1_prf.txt
                      evppkey_rsa.txt
-                     evppkey_mlkem768_keygen.txt
-                     evppkey_mlkem768_encap.txt
-                     evppkey_mlkem768_decap.txt
                     );
 push @defltfiles, qw(evppkey_brainpool.txt) unless $no_ec;
 push @defltfiles, qw(evppkey_ecdsa_rfc6979.txt) unless $no_ec;
@@ -141,6 +139,11 @@ push @defltfiles, qw(evppkey_sm2.txt) unless $no_sm2;
 push @defltfiles, qw(evpciph_aes_gcm_siv.txt) unless $no_siv;
 push @defltfiles, qw(evpciph_aes_siv.txt) unless $no_siv;
 push @defltfiles, qw(evpkdf_argon2.txt) unless $no_argon2;
+push @defltfiles, qw(
+                     evppkey_mlkem768_keygen.txt
+                     evppkey_mlkem768_encap.txt
+                     evppkey_mlkem768_decap.txt
+                    ) unless $no_mlkem;
 
 plan tests =>
     + (scalar(@configs) * scalar(@files))
