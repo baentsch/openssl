@@ -55,7 +55,6 @@ while (next != ""):
   next = getnextlink(rh)
   for issue in r.json():
      issues+=1
-
      inr = issue["number"]
      ispr = "pull_request" in issue.keys()
      author = issue["user"]["login"]
@@ -113,7 +112,6 @@ while (next != ""):
              continue  # to next issue
      else:
         feedback("Inactive: Delete?", inr, dtd, holding, ispr)
-        continue
 
      ## now check issue comments:
      nextcomment = "https://api.github.com/repos/"+PROJECT+"/issues/"+str(inr)+"/comments"
@@ -130,6 +128,10 @@ while (next != ""):
      if (lastcommentauthor == "nhorman" or lastcommentauthor == "t8m"):
          if (lastcommentbody.find("ping") >= 0 or (lastcommentbody.find("closed")>=0 and lastcommentbody.find("inactive"))):
              feedback("To be deleted", inr, dtd, holding, ispr)
+             # activate these lines to actually close all issues slated for closure:
+             #closeresponse = requests.patch("https://api.github.com/repos/"+PROJECT+"/issues/"+str(inr), headers=headers, json={"state":"closed"})
+             #if (closeresponse.status_code != 200):
+             #   print("deletion failed with response code %d" % (closeresponse.status_code))
              continue
      if ispr:
         if (rcomments > 0 and (lastcommentauthor == author or lastreviewauthor == author)):
