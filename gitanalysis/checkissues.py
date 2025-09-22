@@ -1,16 +1,30 @@
 # Goal of this program is to review all open PROJECT issues and suggest possible/recommended next steps
+# Further goal is to report KPIs as proposed by @mattcaswell in https://github.com/openssl/project/issues/1374
+
+checkcomments = 0 # re-enable for more thoroughness but slower runtime
+
+CHECK_PERIOD=50 #days
+CNOBACK=0
+ONOBACK=0
+NOBACK=0
+
+TRIAGE_GRACEPERIOD=5 #days
 
 PROJECT="openssl/openssl"
 
 import requests
 import os
-from datetime import datetime, date, time, timezone
+import sys
+from datetime import datetime, date, time, timezone, timedelta
 
 if "GHTOKEN" not in os.environ:
     print("Warning: GHTOKEN not set: Low rate limit!")
     headers = {'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28'}
 else:
     headers = {'Authorization': 'Bearer ' + os.environ["GHTOKEN"], 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28'}
+
+def progress(s):
+   print(s, file=sys.stderr)
 
 def getnextlink(headers):
     if "link" in headers.keys():
@@ -34,6 +48,8 @@ def feedback(message, id, dtd, holding, pr):
     print("<p>")
 
 now = datetime.now(timezone.utc)
+endcheckdate = now - timedelta(days = CHECK_PERIOD)
+gracecheckdate = now - timedelta(days = TRIAGE_GRACEPERIOD)
 
 # iterate through all open issues -- these include PRs
 
@@ -44,10 +60,14 @@ now = datetime.now(timezone.utc)
 
 
 # maximum number for API: 100; less is possible but less efficient (counting towards rate limit)
-next = 'https://api.github.com/repos/'+PROJECT+'/issues?per_page=100'
+next = 'https://api.github.com/repos/'+PROJECT+'/issues?state=all&per_page=100'
 issues = 0
 while (next != ""):
   r = requests.get(next, headers=headers)
+  if r.status_code != 200:
+     print("Failed to get next issue batch. Aborting.")
+     break
+  progress(".")
   rh = r.headers
   if "X-RateLimit-Remaining" in rh.keys():
      if int(rh["X-RateLimit-Remaining"]) < 100:
@@ -57,11 +77,12 @@ while (next != ""):
      issues+=1
      inr = issue["number"]
      ispr = "pull_request" in issue.keys()
+     isopen = issue["state"] == "open"
      author = issue["user"]["login"]
      dt = datetime.strptime(issue["created_at"], "%Y-%m-%dT%H:%M:%SZ")
 
      dtd = now-dt.replace(tzinfo=timezone.utc)
-     if ispr:
+     if ispr and isopen:
          # now check review comments for this PR:
          nextreview = "https://api.github.com/repos/"+PROJECT+"/pulls/"+str(inr)+"/reviews"
          approvals = 0
@@ -69,6 +90,7 @@ while (next != ""):
          changerequestedby = []
          while (nextreview != ""):
              rc = requests.get(nextreview, headers=headers)
+             progress("+")
              nextreview=getnextlink(rc.headers)
              lastreviewauthor = ""
              for rcomment in rc.json():
@@ -94,63 +116,98 @@ while (next != ""):
      # for presence of hold and/or triaged labels
      reqlabels = "https://api.github.com/repos/"+PROJECT+"/issues/"+str(inr)+"/labels"
      lresp = requests.get(reqlabels, headers=headers)
+     progress("l")
+     if lresp.status_code != 200:
+        print("Failed to get labels for issue %d. Aborting check." % (inr))
+        break
      # don't assume pagination to be an issue (TBC)
      inactive = 0
+     backlog = 0
      holding = ""
      triaged = ""
      for label in lresp.json():
          if (label["name"] == "inactive"):
             inactive = 1
+         if (label["name"].find("backlog") == 0):
+            backlog = 1
          if (label["name"].find("triaged:") == 0):
             triaged = label["name"]
          if (label["name"].find("hold:") == 0):
             holding = label["name"]
 
-     if inactive == 0:
-         if (triaged == "") and not ispr:
+     if backlog == 0 and not ispr:
+          if isopen:
+             if endcheckdate.timestamp() < dt.timestamp():
+                ONOBACK+=1
+                NOBACK+=1
+          elif issue["state"] == "closed":
+             alreadycounted=False
+             if endcheckdate.timestamp() < dt.timestamp():
+                ONOBACK+=1
+                NOBACK+=1
+                alreadycounted=True
+             cdt = datetime.strptime(issue["closed_at"], "%Y-%m-%dT%H:%M:%SZ")
+             if endcheckdate.timestamp() < cdt.timestamp():
+                CNOBACK+=1
+                if not alreadycounted: NOBACK+=1
+          else:
+             print("Issue %d in state %s. Don't know how to count." % (inr, issue["state"]))
+
+     if isopen:
+       if inactive == 0:
+         if (triaged == "") and not ispr and gracecheckdate.timestamp() > dt.timestamp():
              feedback("Not triaged: Why?", inr, dtd, holding, ispr)
              continue  # to next issue
-     else:
-        feedback("Inactive: Delete?", inr, dtd, holding, ispr)
+       else:
+         feedback("Inactive: Delete?", inr, dtd, holding, ispr)
 
-     ## now check issue comments:
-     nextcomment = "https://api.github.com/repos/"+PROJECT+"/issues/"+str(inr)+"/comments"
-     icomments = 0
-     while (nextcomment != ""):
-          cc = requests.get(nextcomment, headers=headers)
-          nextcomment = getnextlink(cc.headers)
-          lastcommentauthor=""
-          for icomment in cc.json():
-            icomments = icomments+1
-            lastcommentbody = icomment["body"]
-            lastcommentdt = datetime.strptime(icomment["updated_at"], "%Y-%m-%dT%H:%M:%SZ")
-            lastcommentauthor = icomment["user"]["login"]
-     if (lastcommentauthor == "nhorman" or lastcommentauthor == "t8m"):
-         if (lastcommentbody.find("ping") >= 0 or (lastcommentbody.find("closed")>=0 and lastcommentbody.find("inactive"))):
-             feedback("To be deleted", inr, dtd, holding, ispr)
-             # activate these lines to actually close all issues slated for closure:
-             #closeresponse = requests.patch("https://api.github.com/repos/"+PROJECT+"/issues/"+str(inr), headers=headers, json={"state":"closed"})
-             #if (closeresponse.status_code != 200):
-             #   print("deletion failed with response code %d" % (closeresponse.status_code))
-             continue
-     if ispr:
-        if (rcomments > 0 and (lastcommentauthor == author or lastreviewauthor == author)):
-          feedback("Last comment by author: Action: Re-Review due?", inr, dtd, holding, ispr)
-        if (approvals == 1):
-          feedback("--> 1 approval given: 2nd check due", inr, dtd, holding, ispr)
-        if (approvals > 1 and len(changerequestedby)==0):
-          feedback("--> Sufficient approvals given: Why still open?", inr, dtd, holding, ispr)
-        if (rcomments == 0):
-          feedback("-->Never reviewed: Why?", inr, dtd, holding, ispr)
-        # TBD: Possible ToDos: 
-        # check whether core team has left a comment (last?)
-        # check for more labels' presence (knowing what they mean)
-        # Link with Project association
-        # Treat assigned issues differently (flag issues where assignee is not last comment author)
-        # .....
+       if checkcomments:
+         ## now check issue comments:
+         nextcomment = "https://api.github.com/repos/"+PROJECT+"/issues/"+str(inr)+"/comments"
+         icomments = 0
+         while (nextcomment != ""):
+            cc = requests.get(nextcomment, headers=headers)
+            progress("c")
+            nextcomment = getnextlink(cc.headers)
+            lastcommentauthor=""
+            for icomment in cc.json():
+              icomments = icomments+1
+              lastcommentbody = icomment["body"]
+              lastcommentdt = datetime.strptime(icomment["updated_at"], "%Y-%m-%dT%H:%M:%SZ")
+              lastcommentauthor = icomment["user"]["login"]
+         if (lastcommentauthor == "nhorman" or lastcommentauthor == "t8m"):
+           if (lastcommentbody.find("ping") >= 0 or (lastcommentbody.find("closed")>=0 and lastcommentbody.find("inactive"))):
+               feedback("To be deleted", inr, dtd, holding, ispr)
+               # activate these lines to actually close all issues slated for closure:
+               #closeresponse = requests.patch("https://api.github.com/repos/"+PROJECT+"/issues/"+str(inr), headers=headers, json={"state":"closed"})
+               #if (closeresponse.status_code != 200):
+               #   print("deletion failed with response code %d" % (closeresponse.status_code))
+               continue
+       if ispr:
+          if checkcomments and (rcomments > 0 and (lastcommentauthor == author or lastreviewauthor == author)):
+            feedback("Last comment by author: Action: Re-Review due?", inr, dtd, holding, ispr)
+          if (approvals == 1):
+            feedback("--> 1 approval given: 2nd check due", inr, dtd, holding, ispr)
+          if (approvals > 1 and len(changerequestedby)==0):
+            feedback("--> Sufficient approvals given: Why still open?", inr, dtd, holding, ispr)
+          if (rcomments == 0) and gracecheckdate.timestamp() > dt.timestamp():
+            feedback("-->Never reviewed: Why?", inr, dtd, holding, ispr)
+          # TBD: Possible ToDos: 
+          # check whether core team has left a comment (last?)
+          # check for more labels' presence (knowing what they mean)
+          # Link with Project association
+          # Treat assigned issues differently (flag issues where assignee is not last comment author)
+          # .....
+       # end if isopen
+     progress("---")
+  if inr < 20000:
+      break
 
 # KPIs could be computed from the parameters collected, e.g.
 # time passed since 1st approval could get a high score as could time passed without any triage, etc.
 
 
 print("%d issues overall" % (issues))
+print("KPIs: On %d overall issues in check period:" %(NOBACK))
+print("  %d opened" % (ONOBACK))
+print("  %d closed" % (CNOBACK))
