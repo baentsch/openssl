@@ -1,9 +1,15 @@
 # Sole goal is to report KPIs as proposed by @mattcaswell in https://github.com/openssl/project/issues/1374
 
 CHECK_PERIOD=365 #days
+
+# simple counters
 CNOBACK=0
 ONOBACK=0
 NOBACK=0
+
+# dictionaries of events per day
+CLOSED={}
+OPENED={}
 
 # enabling this increases script runtime about 100x but honors proposed use of "backlog" label:
 checklabels = False
@@ -58,6 +64,7 @@ while (next != ""):
      ispr = "pull_request" in issue.keys()
      isopen = issue["state"] == "open"
      dt = datetime.strptime(issue["created_at"], "%Y-%m-%dT%H:%M:%SZ")
+     ds = dt.strftime("%Y-%m-%d")
 
      if ispr:
         prs+=1
@@ -83,23 +90,41 @@ while (next != ""):
      if backlog == 0 and not ispr:
           if isopen:
              if endcheckdate.timestamp() < dt.timestamp():
-                ONOBACK+=1
+                if ds not in OPENED.keys():
+                    OPENED[ds]=0
                 NOBACK+=1
+                OPENED[ds]+=1
           elif issue["state"] == "closed":
              alreadycounted=False
              if endcheckdate.timestamp() < dt.timestamp():
-                ONOBACK+=1
+                if ds not in OPENED.keys():
+                    OPENED[ds]=0
+                OPENED[ds]+=1
                 NOBACK+=1
                 alreadycounted=True
              cdt = datetime.strptime(issue["closed_at"], "%Y-%m-%dT%H:%M:%SZ")
+             cs = cdt.strftime("%Y-%m-%d")
              if endcheckdate.timestamp() < cdt.timestamp():
-                CNOBACK+=1
+                if cs not in CLOSED.keys():
+                  CLOSED[cs]=0
+                CLOSED[cs]+=1
                 if not alreadycounted: NOBACK+=1
           else:
              print("Issue %d in state %s. Don't know how to count." % (inr, issue["state"]))
 
+# Now do the real counting exclusing mass closure events
+for ds in OPENED.keys():
+    #print("%s: %d" % (ds, OPENED[ds]))
+    ONOBACK+=OPENED[ds]
+for ds in CLOSED.keys():
+    #print("%s: %d" % (ds, CLOSED[ds]))
+    if CLOSED[ds]>50:
+        print("Mass closure day omitted from KPI: %s" % (ds))
+    else:
+       CNOBACK+=CLOSED[ds]
 print("%d issues overall" % (issues))
 print("%d PRs overall" % (prs))
-print("KPIs: On %d overall issues in check period:" %(NOBACK))
+print("KPI components: On %d overall issues in check period:" %(NOBACK))
 print("  %d opened" % (ONOBACK))
 print("  %d closed" % (CNOBACK))
+print("KPI: %d" % (CNOBACK-ONOBACK))
