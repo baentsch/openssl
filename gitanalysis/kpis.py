@@ -1,5 +1,9 @@
 # Sole goal is to report KPIs as proposed by @mattcaswell in https://github.com/openssl/project/issues/1374
 
+# These days are designated mass closure days for now (constant as they should never happen again):
+# They will be disregarded for the KPI calculation
+MCD=["2025-08-28", "2025-08-21", "2025-08-19", "2025-08-20", "2024-10-29"]
+
 CHECK_PERIOD=365 #days
 
 # simple counters
@@ -7,9 +11,15 @@ CNOBACK=0
 ONOBACK=0
 NOBACK=0
 
+# KPI categories
+CATS = ["any", "feature", "bug", "documentation"]
+
 # dictionaries of events per day
 CLOSED={}
 OPENED={}
+for category in CATS:
+    CLOSED[category]={}
+    OPENED[category]={}
 
 PROJECT="openssl/openssl"
 
@@ -69,50 +79,65 @@ while (next != ""):
      dtd = now-dt.replace(tzinfo=timezone.utc)
 
      backlog=0
-     if not ispr and isopen:
+     category="any"
+     if not ispr:
         for label in issue["labels"]:
             if (label["name"].find("backlog") == 0):
                backlog = 1
                print("Found backlog issue %d" % (inr))
+            if (label["name"].find("triaged: feature") == 0):
+               category = "feature"
+            elif (label["name"].find("triaged: documentation") == 0):
+               category = "documentation"
+            elif (label["name"].find("triaged: bug") == 0):
+               category = "bug"
 
      if backlog == 0 and not ispr:
           if isopen:
              if endcheckdate.timestamp() < dt.timestamp():
-                if ds not in OPENED.keys():
-                    OPENED[ds]=0
+                if ds not in OPENED[category].keys():
+                    OPENED[category][ds]=0
                 NOBACK+=1
-                OPENED[ds]+=1
+                OPENED[category][ds]+=1
           elif issue["state"] == "closed":
              alreadycounted=False
              if endcheckdate.timestamp() < dt.timestamp():
-                if ds not in OPENED.keys():
-                    OPENED[ds]=0
-                OPENED[ds]+=1
+                if ds not in OPENED[category].keys():
+                    OPENED[category][ds]=0
+                OPENED[category][ds]+=1
                 NOBACK+=1
                 alreadycounted=True
              cdt = datetime.strptime(issue["closed_at"], "%Y-%m-%dT%H:%M:%SZ")
              cs = cdt.strftime("%Y-%m-%d")
              if endcheckdate.timestamp() < cdt.timestamp():
-                if cs not in CLOSED.keys():
-                  CLOSED[cs]=0
-                CLOSED[cs]+=1
+                if cs not in CLOSED[category].keys():
+                  CLOSED[category][cs]=0
+                CLOSED[category][cs]+=1
                 if not alreadycounted: NOBACK+=1
           else:
              print("Issue %d in state %s. Don't know how to count." % (inr, issue["state"]))
 
-# Now do the real counting exclusing mass closure events
-for ds in OPENED.keys():
-    #print("%s: %d" % (ds, OPENED[ds]))
-    ONOBACK+=OPENED[ds]
-for ds in CLOSED.keys():
-    #print("%s: %d" % (ds, CLOSED[ds]))
-    if CLOSED[ds]>50:
-        print("Mass closure day omitted from KPI: %s" % (ds))
-    else:
-       CNOBACK+=CLOSED[ds]
 print("%d issues overall" % (issues))
 print("%d PRs overall" % (prs))
-print("KPI components: On %d overall issues in check period:" %(NOBACK))
-print("  %d opened" % (ONOBACK))
+# Now do the real counting excluding mass closure events
+ONOBACK=0
+CNOBACK=0
+for category in CATS:
+    ofnoback=0
+    cfnoback=0
+    for ds in OPENED[category].keys():
+        if not ds in MCD:
+            ofnoback+=OPENED[category][ds]
+            ONOBACK+=OPENED[category][ds]
+    for ds in CLOSED[category].keys():
+        if not ds in MCD:
+           cfnoback+=CLOSED[category][ds]
+           CNOBACK+=CLOSED[category][ds]
+    print("KPI components %s: " %(category))
+    print("  %d opened" % (ofnoback))
+    print("  %d closed" % (cfnoback))
+    print("  KPI[%s]=%d" % (category, cfnoback-ofnoback))
+print("Overall:")
 print("  %d closed" % (CNOBACK))
+print("  %d opened" % (ONOBACK))
 print("KPI: %d" % (CNOBACK-ONOBACK))
