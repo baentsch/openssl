@@ -12,7 +12,7 @@ CLOSED={}
 OPENED={}
 
 # enabling this increases script runtime about 100x but honors proposed use of "backlog" label:
-checklabels = False
+checklabels = True
 
 PROJECT="openssl/openssl"
 
@@ -72,6 +72,7 @@ while (next != ""):
      dtd = now-dt.replace(tzinfo=timezone.utc)
 
      if checklabels:
+      if not ispr and isopen:
         # KPIS seem to require label check ("backlog") -- but this adds a 100x of queries, so switching off by default for now:
         # also check labels (https://docs.github.com/en/rest/issues/labels?apiVersion=2022-11-28#list-labels-for-an-issue)
         reqlabels = "https://api.github.com/repos/"+PROJECT+"/issues/"+str(inr)+"/labels"
@@ -84,6 +85,7 @@ while (next != ""):
         for label in lresp.json():
             if (label["name"].find("backlog") == 0):
                backlog = 1
+               print("Found backlog issue %d" % (inr))
      else: # assume no backlog
         backlog = 0
 
