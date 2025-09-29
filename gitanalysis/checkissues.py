@@ -111,21 +111,11 @@ while (next != ""):
                       print()
                   approvals += 1
                lastreviewdt = datetime.strptime(rcomment["submitted_at"], "%Y-%m-%dT%H:%M:%SZ")
-     # also check labels (https://docs.github.com/en/rest/issues/labels?apiVersion=2022-11-28#list-labels-for-an-issue)
-     # for presence of inactive label (and whether it's there longer than the last comment)
-     # for presence of hold and/or triaged labels
-     reqlabels = "https://api.github.com/repos/"+PROJECT+"/issues/"+str(inr)+"/labels"
-     lresp = requests.get(reqlabels, headers=headers)
-     progress("l")
-     if lresp.status_code != 200:
-        print("Failed to get labels for issue %d. Aborting check." % (inr))
-        break
-     # don't assume pagination to be an issue (TBC)
      inactive = 0
      backlog = 0
      holding = ""
      triaged = ""
-     for label in lresp.json():
+     for label in issue["labels"]:
          if (label["name"] == "inactive"):
             inactive = 1
          if (label["name"].find("backlog") == 0):
